@@ -1,38 +1,7 @@
 {
-  "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"claude/sparedollar-mvp\" ]",
-  "crons": [
-    {
-      "path": "/api/cron/ebay-refresh",
-      "schedule": "0 */12 * * *"
-    }
-  ],
+  "installCommand": "npm install --legacy-peer-deps",
   "functions": {
-    "src/app/api/scan/route.ts": { "maxDuration": 60 },
     "src/app/api/generate/route.ts": { "maxDuration": 60 },
-    "src/app/api/ebay/item-specifics/route.ts": { "maxDuration": 30 },
-    "src/app/api/ebay/prefill-aspects/route.ts": { "maxDuration": 30 },
-    "src/app/api/ebay/categories/route.ts": { "maxDuration": 30 },
-    "src/app/api/test-tone/route.ts": { "maxDuration": 30 },
-    "src/app/api/auth/ebay/callback/route.ts": { "maxDuration": 30 }
-  },
-  "redirects": [
-    {
-      "source": "/(.*)",
-      "has": [{ "type": "host", "value": "sparedollar.co" }],
-      "destination": "https://sparedollar.io/$1",
-      "permanent": true
-    },
-    {
-      "source": "/(.*)",
-      "has": [{ "type": "host", "value": "www.sparedollar.co" }],
-      "destination": "https://sparedollar.io/$1",
-      "permanent": true
-    },
-    {
-      "source": "/(.*)",
-      "has": [{ "type": "host", "value": "www.sparedollar.io" }],
-      "destination": "https://sparedollar.io/$1",
-      "permanent": true
-    }
-  ]
+    "src/app/api/shopify/products/batch/route.ts": { "maxDuration": 60 }
+  }
 }
