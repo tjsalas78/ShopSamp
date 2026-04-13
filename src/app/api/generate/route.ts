@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     const products = await PSX_generateProducts(input);
     return NextResponse.json({ products });
   } catch (err) {
-    console.error("[ShopSamp Generate] Error:", err);
+    console.error("[SampShop Generate] Error:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Generation failed" },
       { status: 500 }

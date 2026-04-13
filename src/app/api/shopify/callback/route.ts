@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     const appUrl = `${process.env.SHOPIFY_APP_URL}/app?shop=${session.shop}&host=${host}`;
     return NextResponse.redirect(appUrl);
   } catch (err) {
-    console.error("[ShopSamp] OAuth callback error:", err);
+    console.error("[SampShop] OAuth callback error:", err);
     return NextResponse.json({ error: "OAuth callback failed" }, { status: 500 });
   }
 }

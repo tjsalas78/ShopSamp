@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ShopSamp",
+  title: "SampShop",
   description: "Generate AI-powered product samples for your Shopify store.",
 };
 

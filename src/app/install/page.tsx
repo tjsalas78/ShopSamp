@@ -44,7 +44,7 @@ export default function InstallPage() {
         }}
       >
         <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "8px" }}>
-          Install ShopSamp
+          Install SampShop
         </h1>
         <p style={{ color: "#6d7175", marginBottom: "32px", fontSize: "14px" }}>
           Generate AI-powered product samples for your Shopify store in seconds.

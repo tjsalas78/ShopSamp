@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error("[ShopSamp Publish] Error:", err);
+    console.error("[SampShop Publish] Error:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to publish product" },
       { status: 500 }

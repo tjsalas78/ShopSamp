@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Middleware for ShopSamp (Shopify Embedded App).
+ * Middleware for SampShop (Shopify Embedded App).
  *
  * The /app/* routes are served inside the Shopify Admin iframe.
  * Session validation happens inside each API route via sessionStorage.loadSession().

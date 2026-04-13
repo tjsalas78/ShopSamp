@@ -11,7 +11,7 @@ function AppContent() {
 
   return (
     <Page
-      title="ShopSamp"
+      title="SampShop"
       subtitle="Generate realistic product samples for your Shopify store"
     >
       {!shop && (
