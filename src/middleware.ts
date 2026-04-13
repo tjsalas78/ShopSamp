@@ -1,33 +1,36 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { verifySessionToken, BACKADMIN_COOKIE } from '@/lib/backadmin';
+import { NextRequest, NextResponse } from "next/server";
 
+/**
+ * Middleware for ShopSamp (Shopify Embedded App).
+ *
+ * The /app/* routes are served inside the Shopify Admin iframe.
+ * Session validation happens inside each API route via sessionStorage.loadSession().
+ * Middleware here only handles:
+ * - CSP frame-ancestors header (belt-and-suspenders, also set in next.config.ts)
+ * - Redirecting bare /app loads (no host param) to the install prompt
+ */
 export function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
+  const { pathname, searchParams } = request.nextUrl;
 
-  // Protect all /test routes (UI)
-  if (pathname.startsWith('/test') && pathname !== '/test/layout') {
-    const token = request.cookies.get(BACKADMIN_COOKIE)?.value;
+  // Ensure the Content-Security-Policy allows Shopify to embed us
+  const response = NextResponse.next();
+  response.headers.set(
+    "Content-Security-Policy",
+    "frame-ancestors https://*.shopify.com https://*.myshopify.com;"
+  );
 
-    if (!token || !verifySessionToken(token)) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
+  // If someone hits /app without a host param, redirect to install flow
+  if (pathname.startsWith("/app")) {
+    const host = searchParams.get("host");
+    const shop = searchParams.get("shop");
+    if (!host && !shop) {
+      return NextResponse.redirect(new URL("/install", request.url));
     }
   }
 
-  // Protect all /api/test routes (API)
-  if (pathname.startsWith('/api/test')) {
-    const token = request.cookies.get(BACKADMIN_COOKIE)?.value;
-
-    if (!token || !verifySessionToken(token)) {
-      return NextResponse.json(
-        { error: 'Unauthorized - admin authentication required' },
-        { status: 401 }
-      );
-    }
-  }
-
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
-  matcher: ['/test/:path*', '/api/test/:path*'],
+  matcher: ["/app/:path*"],
 };

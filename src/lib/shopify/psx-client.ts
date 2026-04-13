@@ -1,11 +1,11 @@
 /**
- * PSX_ShopifyClient — Shopify Admin API client for ProdSamp.
- * Handles all product CRUD operations via Shopify REST Admin API.
+ * PSX_ShopifyClient — Shopify Admin API client for ShopSamp.
+ * Uses @shopify/shopify-api session storage for access tokens.
  */
 
-import { buildApiUrl } from './psx-config';
-import { getSessionManager } from '../services/session-manager';
-import prisma from '../prisma';
+import { shopify, sessionStorage } from "./shopify";
+import { buildApiUrl } from "./psx-config";
+import { prisma } from "../prisma";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -15,9 +15,13 @@ export interface PSX_ProductInput {
   vendor?: string;
   product_type?: string;
   tags?: string[];
+  price?: string;
+  compare_at_price?: string;
   images?: { src: string; alt?: string }[];
   variants?: PSX_VariantInput[];
-  status?: 'active' | 'draft' | 'archived';
+  status?: "active" | "draft" | "archived";
+  seo_title?: string;
+  seo_description?: string;
 }
 
 export interface PSX_VariantInput {
@@ -29,7 +33,7 @@ export interface PSX_VariantInput {
   sku?: string;
   inventory_quantity?: number;
   weight?: number;
-  weight_unit?: 'lb' | 'oz' | 'kg' | 'g';
+  weight_unit?: "lb" | "oz" | "kg" | "g";
 }
 
 export interface PSX_ShopifyProduct {
@@ -46,52 +50,43 @@ export interface PSX_ShopifyProduct {
   updated_at: string;
 }
 
-// ─── Client ────────────────────────────────────────────────────────────────
+// ─── Auth Helpers ───────────────────────────────────────────────────────────
 
 /**
- * Get the decrypted access token for a store.
+ * Get the offline access token for a shop from the Shopify SDK session storage.
  */
-async function getStoreToken(storeId: string): Promise<{ token: string; shopDomain: string }> {
-  const store = await prisma.shopifyStore.findUnique({
-    where: { id: storeId },
-  });
-
-  if (!store || !store.isActive) {
-    throw new Error('Store not found or inactive');
+async function getShopToken(shopDomain: string): Promise<string> {
+  const sessionId = shopify.session.getOfflineId(shopDomain);
+  const session = await sessionStorage.loadSession(sessionId);
+  if (!session?.accessToken) {
+    throw new Error(`No active session for ${shopDomain} — merchant needs to reinstall the app`);
   }
-
-  const sm = getSessionManager();
-  const encryptedData = JSON.parse(store.accessToken);
-  const token = sm.decrypt(encryptedData);
-
-  return { token, shopDomain: store.shopDomain };
+  return session.accessToken;
 }
 
 /**
- * Make an authenticated request to the Shopify Admin API.
+ * Make an authenticated request to the Shopify Admin REST API.
  */
 async function shopifyFetch<T>(
   shopDomain: string,
-  token: string,
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const token = await getShopToken(shopDomain);
   const url = buildApiUrl(shopDomain, endpoint);
 
   const response = await fetch(url, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
-      'X-Shopify-Access-Token': token,
+      "Content-Type": "application/json",
+      "X-Shopify-Access-Token": token,
       ...options.headers,
     },
   });
 
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(
-      `Shopify API error (${response.status}): ${errorBody}`
-    );
+    throw new Error(`Shopify API error (${response.status}): ${errorBody}`);
   }
 
   return response.json() as Promise<T>;
@@ -99,53 +94,51 @@ async function shopifyFetch<T>(
 
 // ─── Product Operations ────────────────────────────────────────────────────
 
-/**
- * Create a product on Shopify (published or draft).
- */
 export async function PSX_createProduct(
-  storeId: string,
+  shopDomain: string,
   input: PSX_ProductInput
 ): Promise<PSX_ShopifyProduct> {
-  const { token, shopDomain } = await getStoreToken(storeId);
-
-  // Build product payload with options if variants exist
   const product: Record<string, unknown> = {
     title: input.title,
     body_html: input.body_html,
-    vendor: input.vendor || '',
-    product_type: input.product_type || '',
-    tags: input.tags?.join(', ') || '',
-    status: input.status || 'draft',
-    images: input.images || [],
+    vendor: input.vendor ?? "",
+    product_type: input.product_type ?? "",
+    tags: input.tags?.join(", ") ?? "",
+    status: input.status ?? "draft",
+    images: input.images ?? [],
   };
 
-  // Add variant options
   if (input.variants && input.variants.length > 0) {
     const options: { name: string }[] = [];
-    if (input.variants.some((v) => v.option1)) options.push({ name: 'Color' });
-    if (input.variants.some((v) => v.option2)) options.push({ name: 'Size' });
-    if (input.variants.some((v) => v.option3)) options.push({ name: 'Condition' });
+    if (input.variants.some((v) => v.option1)) options.push({ name: "Color" });
+    if (input.variants.some((v) => v.option2)) options.push({ name: "Size" });
+    if (input.variants.some((v) => v.option3)) options.push({ name: "Condition" });
     product.options = options;
     product.variants = input.variants;
+  } else if (input.price) {
+    product.variants = [{ price: input.price, compare_at_price: input.compare_at_price }];
   }
 
   const result = await shopifyFetch<{ product: PSX_ShopifyProduct }>(
     shopDomain,
-    token,
-    'products.json',
-    {
-      method: 'POST',
-      body: JSON.stringify({ product }),
-    }
+    "products.json",
+    { method: "POST", body: JSON.stringify({ product }) }
   );
 
-  // Track in our database
-  await prisma.shopifyProduct.create({
-    data: {
-      storeId,
+  // Track in ShopifyProduct table
+  await prisma.shopifyProduct.upsert({
+    where: {
+      shopDomain_shopifyProductId: {
+        shopDomain,
+        shopifyProductId: String(result.product.id),
+      },
+    },
+    update: { title: result.product.title, isDraft: input.status === "draft" },
+    create: {
+      shopDomain,
       shopifyProductId: String(result.product.id),
       title: result.product.title,
-      isDraft: input.status === 'draft',
+      isDraft: input.status !== "active",
       sourceData: input as object,
     },
   });
@@ -153,128 +146,86 @@ export async function PSX_createProduct(
   return result.product;
 }
 
-/**
- * Create a draft product on Shopify.
- */
 export async function PSX_createDraftProduct(
-  storeId: string,
+  shopDomain: string,
   input: PSX_ProductInput
 ): Promise<PSX_ShopifyProduct> {
-  return PSX_createProduct(storeId, { ...input, status: 'draft' });
+  return PSX_createProduct(shopDomain, { ...input, status: "draft" });
 }
 
-/**
- * Publish a draft product (set status to active).
- */
 export async function PSX_publishProduct(
-  storeId: string,
+  shopDomain: string,
   shopifyProductId: string
 ): Promise<PSX_ShopifyProduct> {
-  const { token, shopDomain } = await getStoreToken(storeId);
-
   const result = await shopifyFetch<{ product: PSX_ShopifyProduct }>(
     shopDomain,
-    token,
     `products/${shopifyProductId}.json`,
-    {
-      method: 'PUT',
-      body: JSON.stringify({ product: { status: 'active' } }),
-    }
+    { method: "PUT", body: JSON.stringify({ product: { status: "active" } }) }
   );
 
-  // Update tracking record
   await prisma.shopifyProduct.updateMany({
-    where: { storeId, shopifyProductId },
+    where: { shopDomain, shopifyProductId },
     data: { isDraft: false },
   });
 
   return result.product;
 }
 
-/**
- * Update an existing product on Shopify.
- */
 export async function PSX_updateProduct(
-  storeId: string,
+  shopDomain: string,
   shopifyProductId: string,
   updates: Partial<PSX_ProductInput>
 ): Promise<PSX_ShopifyProduct> {
-  const { token, shopDomain } = await getStoreToken(storeId);
-
   const product: Record<string, unknown> = {};
   if (updates.title) product.title = updates.title;
   if (updates.body_html) product.body_html = updates.body_html;
   if (updates.vendor) product.vendor = updates.vendor;
   if (updates.product_type) product.product_type = updates.product_type;
-  if (updates.tags) product.tags = updates.tags.join(', ');
+  if (updates.tags) product.tags = updates.tags.join(", ");
   if (updates.status) product.status = updates.status;
 
   const result = await shopifyFetch<{ product: PSX_ShopifyProduct }>(
     shopDomain,
-    token,
     `products/${shopifyProductId}.json`,
-    {
-      method: 'PUT',
-      body: JSON.stringify({ product }),
-    }
+    { method: "PUT", body: JSON.stringify({ product }) }
   );
 
   return result.product;
 }
 
-/**
- * Delete a product from Shopify.
- */
 export async function PSX_deleteProduct(
-  storeId: string,
+  shopDomain: string,
   shopifyProductId: string
 ): Promise<void> {
-  const { token, shopDomain } = await getStoreToken(storeId);
-
-  await shopifyFetch(
-    shopDomain,
-    token,
-    `products/${shopifyProductId}.json`,
-    { method: 'DELETE' }
-  );
-
-  // Remove tracking record
-  await prisma.shopifyProduct.deleteMany({
-    where: { storeId, shopifyProductId },
-  });
+  await shopifyFetch(shopDomain, `products/${shopifyProductId}.json`, { method: "DELETE" });
+  await prisma.shopifyProduct.deleteMany({ where: { shopDomain, shopifyProductId } });
 }
 
 /**
- * Batch create multiple products on Shopify.
- * Respects Shopify's rate limits (2 calls/sec for REST API).
+ * Batch create products. Respects Shopify REST rate limit (~2 req/sec).
  */
 export async function PSX_batchCreateProducts(
-  storeId: string,
+  shopDomain: string,
   products: PSX_ProductInput[],
-  isDraft: boolean = true
+  isDraft = true
 ): Promise<{ success: PSX_ShopifyProduct[]; errors: { index: number; error: string }[] }> {
-  const results: PSX_ShopifyProduct[] = [];
+  const success: PSX_ShopifyProduct[] = [];
   const errors: { index: number; error: string }[] = [];
 
   for (let i = 0; i < products.length; i++) {
     try {
-      const product = await PSX_createProduct(storeId, {
+      const product = await PSX_createProduct(shopDomain, {
         ...products[i],
-        status: isDraft ? 'draft' : 'active',
+        status: isDraft ? "draft" : "active",
       });
-      results.push(product);
-
-      // Rate limit: ~2 requests/second for Shopify REST API
+      success.push(product);
       if (i < products.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 550));
+        await new Promise((r) => setTimeout(r, 550)); // ~2 req/s
       }
-    } catch (error) {
-      errors.push({
-        index: i,
-        error: error instanceof Error ? error.message : String(error),
-      });
+    } catch (err) {
+      errors.push({ index: i, error: err instanceof Error ? err.message : String(err) });
     }
   }
 
-  return { success: results, errors };
+  return { success, errors };
 }

@@ -90,11 +90,32 @@ export interface PSX_GeneratedProduct {
 
 export interface PSX_GenerateInput {
   category: string;
-  keywords?: string[];
+  keywords?: string | string[];
   count?: number; // How many samples to generate (default: 1)
   priceRange?: { min: number; max: number };
-  style?: string; // e.g., "luxury", "budget", "vintage", "modern"
+  style?: string;
+  brand?: string;
+  variantPreset?: string; // "none" | "color" | "size" | "color-size" | "color-size-condition" | "condition"
   includeVariants?: boolean;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────
+
+function buildVariantInstruction(preset?: string): string {
+  switch (preset) {
+    case "color":
+      return "Add color variants only (option1 = Color). Use realistic color names. 3-5 colors per product.";
+    case "size":
+      return "Add size variants only (option1 = Size). Use standard size values. 4-6 sizes per product.";
+    case "color-size":
+      return "Add color (option1) and size (option2) variants. Create variants for each color × size combination.";
+    case "color-size-condition":
+      return "Add color (option1), size (option2), and condition (option3: New, Like New, Good, Fair) variants.";
+    case "condition":
+      return "Add condition variants only (option1 = Condition: New, Like New, Good, Fair). Adjust price by condition.";
+    default:
+      return "No variants needed — single-option products only. Leave variants array empty.";
+  }
 }
 
 // ─── Product Generation ────────────────────────────────────────────────────
@@ -150,19 +171,22 @@ export async function PSX_generateProducts(
   const client = getClient();
   const count = input.count || 1;
 
+  const keywordsStr = Array.isArray(input.keywords)
+    ? input.keywords.join(", ")
+    : input.keywords;
+
+  const variantInstruction = buildVariantInstruction(input.variantPreset);
+
   const userPrompt = [
-    `Generate ${count} product sample${count > 1 ? 's' : ''} for the category: "${input.category}"`,
-    input.keywords?.length ? `Keywords/themes: ${input.keywords.join(', ')}` : '',
-    input.priceRange
-      ? `Price range: $${input.priceRange.min} - $${input.priceRange.max}`
-      : '',
-    input.style ? `Style/aesthetic: ${input.style}` : '',
-    input.includeVariants !== false
-      ? 'Include 2-3 variants per product (color/size combinations).'
-      : 'No variants needed — single option products only.',
+    `Generate ${count} product sample${count > 1 ? "s" : ""} for the category: "${input.category}"`,
+    keywordsStr ? `Keywords/themes: ${keywordsStr}` : "",
+    input.brand ? `Brand/Vendor: ${input.brand}` : "",
+    input.priceRange ? `Price range: $${input.priceRange.min} - $${input.priceRange.max}` : "",
+    input.style ? `Style/aesthetic: ${input.style}` : "",
+    variantInstruction,
   ]
     .filter(Boolean)
-    .join('\n');
+    .join("\n");
 
   const response = await withRetry(() =>
     client.messages.create({

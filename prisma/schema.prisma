@@ -8,109 +8,56 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model User {
-  id             String    @id @default(cuid())
-  name           String?
-  email          String    @unique
-  hashedPassword String?
-  emailVerified  DateTime?
-  image          String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  accounts       Account[]
-  sessions       Session[]
-  passwordResets PasswordResetToken[]
-  shopifyStores  ShopifyStore[]
-}
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
+// ─── Shopify SDK Session Storage ─────────────────────────────────────────────
+// Exact shape required by @shopify/shopify-app-session-storage-prisma
 model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
+  id            String    @id
+  shop          String
+  state         String?
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String    @db.Text
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([shop])
 }
 
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
-model PasswordResetToken {
-  id      String   @id @default(cuid())
-  email   String
-  token   String   @unique
-  expires DateTime
-
-  user User @relation(fields: [email], references: [email], onDelete: Cascade)
-
-  @@index([email])
-}
-
-// ─── Shopify Integration ─────────────────────────────────────────────────
+// ─── ShopSamp Store Registry ──────────────────────────────────────────────────
 model ShopifyStore {
-  id                  String    @id @default(cuid())
-  userId              String
-  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String    @id @default(cuid())
+  shopDomain    String    @unique   // e.g. my-store.myshopify.com
+  shopName      String
+  installedAt   DateTime  @default(now())
+  uninstalledAt DateTime?
+  isActive      Boolean   @default(true)
+  planTier      String    @default("free")
+  updatedAt     DateTime  @updatedAt
 
-  // Shopify OAuth information
-  shopName            String    // e.g., "my-store" (from shop.myshopify.com)
-  shopDomain          String    @unique // Full domain for API calls
-  accessToken         String    @db.Text // Encrypted AES-256-CBC token
-  scope               String    // OAuth scopes granted
-
-  isActive            Boolean   @default(true)
-  lastSyncedAt        DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  // Relations
-  products            ShopifyProduct[]
-
-  @@index([userId])
+  products      ShopifyProduct[]
 }
 
+// ─── Generated Products ───────────────────────────────────────────────────────
 model ShopifyProduct {
-  id                  String    @id @default(cuid())
-  storeId             String
-  store               ShopifyStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  id               String       @id @default(cuid())
+  shopDomain       String
+  store            ShopifyStore @relation(fields: [shopDomain], references: [shopDomain], onDelete: Cascade)
 
-  // Shopify product reference
-  shopifyProductId    String    // Shopify's internal product ID
-  title               String
-  isDraft             Boolean   @default(true)
+  shopifyProductId String       // Shopify's GID or numeric ID
+  title            String
+  isDraft          Boolean      @default(true)
+  sourceData       Json         // Full generated product payload
 
-  // Original generated data for reference/editing
-  sourceData          Json      // Complete product sample data
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  @@unique([storeId, shopifyProductId])
-  @@index([storeId])
+  @@unique([shopDomain, shopifyProductId])
+  @@index([shopDomain])
 }
-

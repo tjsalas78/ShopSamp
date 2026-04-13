@@ -1,44 +1,26 @@
+import { NextRequest, NextResponse } from "next/server";
+import { shopify, sessionStorage } from "@/lib/shopify/shopify";
+import { PSX_publishProduct } from "@/lib/shopify/psx-client";
+
 /**
  * POST /api/shopify/products/publish
- * Publish a draft product on Shopify (set status to active).
+ * Publish a draft product (set status to active).
  */
-
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { PSX_publishProduct } from '@/lib/shopify/psx-client';
-import prisma from '@/lib/prisma';
-
-export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+export async function POST(req: NextRequest) {
   try {
-    const { storeId, shopifyProductId } = await request.json();
+    const { shop, shopifyProductId } = await req.json();
 
-    if (!storeId || !shopifyProductId) {
-      return NextResponse.json(
-        { error: 'Missing storeId or shopifyProductId' },
-        { status: 400 }
-      );
+    if (!shop || !shopifyProductId) {
+      return NextResponse.json({ error: "Missing shop or shopifyProductId" }, { status: 400 });
     }
 
-    // Verify user owns the store
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    const store = await prisma.shopifyStore.findFirst({
-      where: { id: storeId, userId: user?.id, isActive: true },
-    });
-
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
+    const sessionId = shopify.session.getOfflineId(shop);
+    const session = await sessionStorage.loadSession(sessionId);
+    if (!session) {
+      return NextResponse.json({ error: "Shop not authenticated — reinstall the app" }, { status: 401 });
     }
 
-    const product = await PSX_publishProduct(storeId, shopifyProductId);
+    const product = await PSX_publishProduct(shop, shopifyProductId);
 
     return NextResponse.json({
       success: true,
@@ -46,13 +28,13 @@ export async function POST(request: NextRequest) {
         id: product.id,
         title: product.title,
         status: product.status,
-        url: `https://${store.shopDomain}/admin/products/${product.id}`,
+        url: `https://${shop}/admin/products/${product.id}`,
       },
     });
-  } catch (error) {
-    console.error('[Shopify Publish] Error:', error);
+  } catch (err) {
+    console.error("[ShopSamp Publish] Error:", err);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to publish product' },
+      { error: err instanceof Error ? err.message : "Failed to publish product" },
       { status: 500 }
     );
   }

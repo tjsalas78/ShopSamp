@@ -1,52 +1,32 @@
+import { NextRequest, NextResponse } from "next/server";
+import { shopify } from "@/lib/shopify/shopify";
+import { sanitizeShopDomain } from "@/lib/shopify/psx-config";
+
 /**
- * POST /api/shopify/auth
- * Initiate Shopify OAuth flow.
- * Accepts { shop: "my-store.myshopify.com" } and returns the authorization URL.
+ * GET /api/shopify/auth?shop=my-store.myshopify.com
+ * Initiates the Shopify OAuth install flow — redirects merchant to Shopify for approval.
  */
-
-import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
-import { buildAuthUrl, sanitizeShopDomain } from '@/lib/shopify/psx-config';
-
-export async function POST(request: NextRequest) {
-  try {
-    const { shop } = await request.json();
-
-    if (!shop || typeof shop !== 'string') {
-      return NextResponse.json(
-        { error: 'Missing or invalid "shop" parameter' },
-        { status: 400 }
-      );
-    }
-
-    // Validate and sanitize the shop domain
-    let cleanShop: string;
-    try {
-      cleanShop = sanitizeShopDomain(shop);
-    } catch {
-      return NextResponse.json(
-        { error: 'Invalid Shopify store domain' },
-        { status: 400 }
-      );
-    }
-
-    // Generate CSRF state token
-    const state = crypto.randomBytes(16).toString('hex');
-
-    // Build the OAuth URL
-    const authUrl = buildAuthUrl(cleanShop, state);
-
-    // Return the auth URL + state (frontend stores state for validation)
-    return NextResponse.json({
-      authUrl,
-      state,
-      shop: cleanShop,
-    });
-  } catch (error) {
-    console.error('[Shopify Auth] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to initiate Shopify OAuth' },
-      { status: 500 }
-    );
+export async function GET(req: NextRequest) {
+  const shop = req.nextUrl.searchParams.get("shop");
+  if (!shop) {
+    return NextResponse.json({ error: "Missing shop parameter" }, { status: 400 });
   }
+
+  const sanitized = sanitizeShopDomain(shop);
+  if (!sanitized) {
+    return NextResponse.json({ error: "Invalid shop domain" }, { status: 400 });
+  }
+
+  const { headers, url } = await shopify.auth.begin({
+    shop: sanitized,
+    callbackPath: "/api/shopify/callback",
+    isOnline: false,
+    rawRequest: req,
+  });
+
+  const response = NextResponse.redirect(url);
+  for (const [key, value] of Object.entries(headers)) {
+    response.headers.set(key, value as string);
+  }
+  return response;
 }

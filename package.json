@@ -1,5 +1,5 @@
 {
-  "name": "prodsamp",
+  "name": "shopsamp",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -11,21 +11,20 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
-    "@auth/prisma-adapter": "^1.6.0",
     "@prisma/client": "^6.5.0",
+    "@shopify/app-bridge-react": "^4.2.10",
+    "@shopify/polaris": "^13.9.5",
+    "@shopify/polaris-icons": "^9.3.1",
+    "@shopify/shopify-api": "^13.0.0",
+    "@shopify/shopify-app-session-storage-prisma": "^9.0.0",
     "@vercel/blob": "^0.27.2",
-    "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
-    "lucide-react": "^0.477.0",
     "next": "15.5.14",
-    "next-auth": "^4.24.11",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "resend": "^4.1.2",
     "tailwind-merge": "^3.0.2"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
