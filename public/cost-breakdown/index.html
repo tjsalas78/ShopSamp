@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cost Breakdown & Overhead — Internal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --teal:#00d4aa;--teal-d:#00b894;--purple:#a855f7;--blue:#3b82f6;
+      --orange:#fb923c;--red:#ef4444;--green:#22c55e;--yellow:#facc15;
+      --bg:#0a0a0f;--bg-card:#14141e;--bg-card2:#1a1a26;--bg-input:#1e1e2e;
+      --border:#252535;--border-l:#2e2e42;
+      --text:#f0f0f4;--muted:rgba(240,240,244,.5);--dim:rgba(240,240,244,.28);
+    }
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:52px 24px 100px;-webkit-font-smoothing:antialiased}
+    .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.011) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.011) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+    .wrap{max-width:1100px;margin:0 auto;position:relative;z-index:1}
+
+    /* Header */
+    .badge{display:inline-flex;align-items:center;gap:6px;background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.25);color:var(--purple);font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;border-radius:100px;margin-bottom:22px}
+    .badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--purple)}
+    h1{font-family:'Fraunces',serif;font-size:clamp(1.8rem,4vw,2.6rem);font-weight:700;line-height:1.1;margin-bottom:10px}
+    h1 span{color:var(--teal)}
+    .subtitle{font-size:.92rem;color:var(--muted);max-width:580px;line-height:1.6}
+    .updated{display:inline-block;margin-top:8px;font-size:.7rem;color:var(--dim)}
+
+    /* Sections */
+    .section{margin-top:52px}
+    .section-label{font-size:.67rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+    .section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+    /* Stat row */
+    .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+    .stat{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px 20px}
+    .stat .lbl{font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:7px}
+    .stat .val{font-size:1.8rem;font-weight:700;line-height:1}
+    .stat .sub{font-size:.73rem;color:var(--muted);margin-top:4px}
+    .c-teal{color:var(--teal)}.c-purple{color:var(--purple)}.c-orange{color:var(--orange)}.c-red{color:var(--red)}.c-green{color:var(--green)}.c-blue{color:var(--blue)}
+
+    /* ── SIMULATOR ── */
+    .sim{background:var(--bg-card);border:1px solid var(--border-l);border-radius:20px;overflow:hidden;margin-top:52px}
+    .sim-header{padding:24px 28px 0;border-bottom:1px solid var(--border)}
+    .sim-header h2{font-family:'Fraunces',serif;font-size:1.3rem;font-weight:600;margin-bottom:4px}
+    .sim-header p{font-size:.83rem;color:var(--muted);padding-bottom:20px}
+    .sim-body{display:grid;grid-template-columns:1fr 380px;min-height:380px}
+    @media(max-width:900px){.sim-body{grid-template-columns:1fr}}
+    .sim-sliders{padding:24px 28px;border-right:1px solid var(--border)}
+    .slider-section-title{font-size:.67rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:14px;margin-top:20px}
+    .slider-section-title:first-child{margin-top:0}
+    .slider-row{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px}
+    @media(max-width:600px){.slider-row{grid-template-columns:1fr}}
+    .slider-group{margin-bottom:4px}
+    .slider-label{display:flex;justify-content:space-between;align-items:center;font-size:.82rem;color:var(--muted);margin-bottom:6px}
+    .slider-label span{font-weight:700;color:var(--teal);min-width:40px;text-align:right}
+    input[type=range]{width:100%;height:5px;border-radius:3px;background:var(--bg-input);appearance:none;cursor:pointer;accent-color:var(--teal)}
+    input[type=range]::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;background:var(--teal);cursor:pointer;box-shadow:0 2px 8px rgba(0,212,170,.4)}
+    .slider-hint{display:flex;justify-content:space-between;font-size:.65rem;color:var(--dim);margin-top:3px}
+
+    /* P&L panel */
+    .sim-pnl{padding:24px 24px;background:rgba(0,0,0,.2);display:flex;flex-direction:column;gap:0}
+    .pnl-title{font-size:.67rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:18px}
+    .pnl-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(37,37,53,.7);font-size:.875rem}
+    .pnl-row:last-child{border-bottom:none}
+    .pnl-row .pnl-label{color:var(--muted)}
+    .pnl-row .pnl-val{font-weight:600}
+    .pnl-divider{height:1px;background:var(--border-l);margin:8px 0}
+    .pnl-net{display:flex;justify-content:space-between;align-items:center;padding:14px 0 6px;font-size:1rem}
+    .pnl-net .pnl-label{font-weight:600;color:var(--text)}
+    .pnl-net .pnl-val{font-family:'Fraunces',serif;font-size:1.6rem;font-weight:700}
+    .pnl-margin-bar{height:6px;border-radius:3px;background:var(--bg-input);margin-top:10px;overflow:hidden}
+    .pnl-margin-fill{height:100%;border-radius:3px;transition:width .3s ease,background .3s ease}
+    .pnl-margin-label{font-size:.75rem;color:var(--muted);margin-top:6px;text-align:right}
+    .pnl-cost-chart{margin-top:18px;height:150px;position:relative}
+    .pnl-cost-legend{display:grid;grid-template-columns:1fr 1fr;gap:7px 14px;margin-top:14px}
+    .legend-item{display:flex;align-items:center;gap:7px;font-size:.72rem;color:var(--muted);min-width:0}
+    .legend-item .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .legend-item .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .legend-item .amt{margin-left:auto;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+
+    /* Tables */
+    .tbl-wrap{border:1px solid var(--border);border-radius:14px;overflow:hidden}
+    table{width:100%;border-collapse:collapse;font-size:.875rem}
+    thead{background:rgba(255,255,255,.025)}
+    thead th{padding:11px 16px;text-align:left;font-size:.65rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--dim);white-space:nowrap}
+    tbody tr{border-top:1px solid rgba(37,37,53,.8);transition:background .12s}
+    tbody tr:hover{background:rgba(255,255,255,.02)}
+    td{padding:12px 16px;vertical-align:middle}
+    td.m{color:var(--muted);font-size:.82rem}
+    .hl-row{background:rgba(0,212,170,.04)!important}
+    .hl-row td:first-child{color:var(--teal);font-weight:700}
+
+    /* Pills */
+    .pill{display:inline-flex;align-items:center;font-size:.67rem;font-weight:700;padding:3px 9px;border-radius:100px;white-space:nowrap}
+    .p-fixed{background:rgba(168,85,247,.12);color:var(--purple);border:1px solid rgba(168,85,247,.2)}
+    .p-var{background:rgba(0,212,170,.1);color:var(--teal);border:1px solid rgba(0,212,170,.2)}
+    .p-good{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+    .p-warn{background:rgba(251,146,60,.12);color:var(--orange);border:1px solid rgba(251,146,60,.2)}
+    .p-danger{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+    .p-info{background:rgba(59,130,246,.12);color:var(--blue);border:1px solid rgba(59,130,246,.2)}
+
+    /* Notes */
+    .note{border-radius:12px;padding:15px 18px;font-size:.82rem;color:var(--muted);line-height:1.65;margin-top:12px}
+    .note strong{color:var(--text)}
+    .note.warn{background:rgba(251,146,60,.05);border:1px solid rgba(251,146,60,.25)}
+    .note.danger{background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.25)}
+    .note.ok{background:rgba(34,197,94,.04);border:1px solid rgba(34,197,94,.22)}
+    .note.info{background:rgba(59,130,246,.05);border:1px solid rgba(59,130,246,.22)}
+    .note.neutral{background:var(--bg-card);border:1px solid var(--border)}
+
+    /* Chart */
+    .chart-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:22px}
+    .chart-title{font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:14px}
+    canvas{max-width:100%}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media(max-width:720px){.two-col{grid-template-columns:1fr}}
+
+    /* Plan distribution + revenue mix */
+    .mix-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+    @media(max-width:900px){.mix-grid{grid-template-columns:1fr}}
+    .pie-canvas-wrap{position:relative;height:260px}
+    .rev-bar-row{margin-bottom:15px}
+    .rev-bar-row:last-child{margin-bottom:0}
+    .rev-bar-head{display:flex;justify-content:space-between;align-items:baseline;font-size:.8rem;margin-bottom:6px}
+    .rev-bar-head .tier-name{font-weight:700}
+    .rev-bar-head .tier-amt{font-weight:700;color:var(--text)}
+    .rev-bar-head .tier-pct{color:var(--muted);font-weight:500;margin-left:4px}
+    .rev-bar-track{height:7px;background:var(--bg-input);border-radius:4px;overflow:hidden}
+    .rev-bar-fill{height:100%;border-radius:4px;transition:width .35s ease,background .35s ease}
+    .rev-bar-sub{font-size:.67rem;color:var(--dim);margin-top:4px}
+    .rev-total{margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:baseline}
+    .rev-total .lbl{font-size:.67rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+    .rev-total .val{font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;color:var(--teal)}
+
+    /* Break-even */
+    .be-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px}
+    .be-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+    .be-card .tier{font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
+    .be-card .num{font-size:2rem;font-weight:700;color:var(--teal);line-height:1}
+    .be-card .sub{font-size:.7rem;color:var(--muted);margin-top:4px}
+
+    /* Recs */
+    .rec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+    .rec{border-radius:12px;padding:20px;border:1px solid}
+    .rec .rec-head{font-weight:700;font-size:.88rem;margin-bottom:8px}
+    .rec .rec-body{font-size:.81rem;line-height:1.6;color:var(--muted)}
+    .rec .rec-body strong{color:var(--text)}
+    .rec.danger{background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.25)}.rec.danger .rec-head{color:var(--red)}
+    .rec.warn{background:rgba(251,146,60,.05);border-color:rgba(251,146,60,.25)}.rec.warn .rec-head{color:var(--orange)}
+    .rec.ok{background:rgba(34,197,94,.04);border-color:rgba(34,197,94,.22)}.rec.ok .rec-head{color:var(--green)}
+    .rec.info{background:rgba(59,130,246,.05);border-color:rgba(59,130,246,.22)}.rec.info .rec-head{color:var(--blue)}
+
+    .formula-box{background:var(--bg-card2);border:1px solid var(--border-l);border-radius:10px;padding:14px 18px;font-size:.82rem;color:var(--muted);line-height:1.9;margin-top:12px}
+    .formula-box span{color:var(--teal);font-weight:600}
+    .formula-box strong{color:var(--text)}
+
+    .footnote{margin-top:56px;padding-top:20px;border-top:1px solid var(--border);font-size:.7rem;color:var(--dim);line-height:1.6}
+  </style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="badge">Internal · Confidential</div>
+  <h1>Cost Breakdown &<br><span>Overhead Analysis</span></h1>
+  <p class="subtitle">Full unit economics — infrastructure, Claude API costs, gross margins, utilization sensitivity, LTV, and break-even. Adjust the sliders to model any scenario.</p>
+  <span class="updated">April 2026 · Pricing: Free / $9 / $39 / $89 / $149</span>
+
+  <!-- ══ LIVE SIMULATOR ══ -->
+  <div class="sim">
+    <div class="sim-header">
+      <h2>Live Cost Simulator</h2>
+      <p>Drag sliders to model users, utilization, and storage. P&L updates instantly.</p>
+    </div>
+    <div class="sim-body">
+      <!-- Sliders -->
+      <div class="sim-sliders">
+        <div class="slider-section-title">Users</div>
+        <div class="slider-row">
+          <div class="slider-group">
+            <div class="slider-label">Free Users <span id="lbl-free">500</span></div>
+            <input type="range" id="sl-free" min="0" max="5000" step="10" value="500">
+            <div class="slider-hint"><span>0</span><span>5k</span></div>
+          </div>
+          <div class="slider-group">
+            <div class="slider-label">Lite ($9) <span id="lbl-lite">100</span></div>
+            <input type="range" id="sl-lite" min="0" max="5000" step="10" value="100">
+            <div class="slider-hint"><span>0</span><span>5k</span></div>
+          </div>
+          <div class="slider-group">
+            <div class="slider-label">Growth ($39) <span id="lbl-growth">50</span></div>
+            <input type="range" id="sl-growth" min="0" max="5000" step="10" value="50">
+            <div class="slider-hint"><span>0</span><span>5k</span></div>
+          </div>
+          <div class="slider-group">
+            <div class="slider-label">Pro ($89) <span id="lbl-pro">20</span></div>
+            <input type="range" id="sl-pro" min="0" max="5000" step="10" value="20">
+            <div class="slider-hint"><span>0</span><span>5k</span></div>
+          </div>
+          <div class="slider-group">
+            <div class="slider-label">Business ($149) <span id="lbl-biz">10</span></div>
+            <input type="range" id="sl-biz" min="0" max="5000" step="10" value="10">
+            <div class="slider-hint"><span>0</span><span>5k</span></div>
+          </div>
+        </div>
+
+        <div class="slider-section-title" style="margin-top:22px">Behavior & Storage</div>
+        <div class="slider-row">
+          <div class="slider-group">
+            <div class="slider-label">Avg Utilization <span id="lbl-util">60%</span></div>
+            <input type="range" id="sl-util" min="10" max="100" step="5" value="60">
+            <div class="slider-hint"><span>10%</span><span>100%</span></div>
+          </div>
+          <div class="slider-group">
+            <div class="slider-label">Avg Images/Listing <span id="lbl-imgs">4</span></div>
+            <input type="range" id="sl-imgs" min="1" max="8" step="1" value="4">
+            <div class="slider-hint"><span>1</span><span>8</span></div>
+          </div>
+          <div class="slider-group">
+            <div class="slider-label">Avg Image Size (KB) <span id="lbl-imgkb">500</span></div>
+            <input type="range" id="sl-imgkb" min="100" max="2000" step="100" value="500">
+            <div class="slider-hint"><span>100KB</span><span>2MB</span></div>
+          </div>
+          <div class="slider-group">
+            <div class="slider-label">Credits / Listing <span id="lbl-cpl">1.5</span></div>
+            <input type="range" id="sl-cpl" min="1" max="3" step="0.5" value="1.5">
+            <div class="slider-hint"><span>1 (create only)</span><span>3 (full AI)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- P&L Panel -->
+      <div class="sim-pnl">
+        <div class="pnl-title">Monthly P&L Estimate</div>
+
+        <div class="pnl-row"><span class="pnl-label">Total Revenue</span><span class="pnl-val c-teal" id="pnl-rev">—</span></div>
+        <div class="pnl-row" style="padding-left:12px"><span class="pnl-label" style="font-size:.78rem">Anthropic API</span><span class="pnl-val c-red" id="pnl-api">—</span></div>
+        <div class="pnl-row" style="padding-left:12px"><span class="pnl-label" style="font-size:.78rem">Stripe (2.9% + $0.30)</span><span class="pnl-val c-red" id="pnl-stripe">—</span></div>
+        <div class="pnl-row" style="padding-left:12px"><span class="pnl-label" style="font-size:.78rem">Vercel Blob (storage + bw)</span><span class="pnl-val c-red" id="pnl-blob">—</span></div>
+        <div class="pnl-row" style="padding-left:12px"><span class="pnl-label" style="font-size:.78rem">Vercel (overage scaling)</span><span class="pnl-val c-red" id="pnl-vercel">—</span></div>
+        <div class="pnl-row" style="padding-left:12px"><span class="pnl-label" style="font-size:.78rem">Neon (compute scaling)</span><span class="pnl-val c-red" id="pnl-neon">—</span></div>
+        <div class="pnl-row" style="padding-left:12px"><span class="pnl-label" style="font-size:.78rem">Fixed Infrastructure</span><span class="pnl-val c-red" id="pnl-fixed">—</span></div>
+        <div class="pnl-row" style="padding-left:12px"><span class="pnl-label" style="font-size:.78rem">Free Tier API Cost</span><span class="pnl-val c-red" id="pnl-free-cost">—</span></div>
+
+        <div class="pnl-divider"></div>
+        <div class="pnl-net">
+          <span class="pnl-label">Net Profit / Loss</span>
+          <span class="pnl-val" id="pnl-net">—</span>
+        </div>
+        <div class="pnl-margin-bar"><div class="pnl-margin-fill" id="pnl-margin-fill" style="width:0%"></div></div>
+        <div class="pnl-margin-label" id="pnl-margin-label">—</div>
+
+        <div class="pnl-cost-chart"><canvas id="chartCostMix"></canvas></div>
+        <div class="pnl-cost-legend" id="costLegend"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Plan distribution + revenue mix -->
+  <div class="section">
+    <p class="section-label">Plan Distribution & Revenue Mix</p>
+    <div class="mix-grid">
+      <div class="chart-wrap">
+        <div class="chart-title">Users by Plan</div>
+        <div class="pie-canvas-wrap"><canvas id="chartPlanPie"></canvas></div>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title">Revenue Contribution by Tier</div>
+        <div id="revBars"></div>
+        <div class="rev-total">
+          <span class="lbl">ARPU (paid)</span>
+          <span class="val" id="rev-arpu">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key stats (dynamic) -->
+  <div class="section">
+    <p class="section-label">Key Metrics (reflects simulator)</p>
+    <div class="stat-row">
+      <div class="stat"><div class="lbl">Total Users</div><div class="val c-teal" id="ks-users">—</div><div class="sub" id="ks-users-sub">—</div></div>
+      <div class="stat"><div class="lbl">Monthly Revenue</div><div class="val c-green" id="ks-rev">—</div><div class="sub">paid tiers only</div></div>
+      <div class="stat"><div class="lbl">Anthropic API Cost</div><div class="val c-red" id="ks-api">—</div><div class="sub">biggest variable cost</div></div>
+      <div class="stat"><div class="lbl">Net Margin</div><div class="val" id="ks-margin">—</div><div class="sub">after all costs</div></div>
+      <div class="stat"><div class="lbl">Cost/Free User</div><div class="val c-orange">$0.18</div><div class="sub">at 60% util (15 credits)</div></div>
+      <div class="stat"><div class="lbl">Fixed Overhead</div><div class="val c-purple">$66</div><div class="sub">/month, infrastructure</div></div>
+    </div>
+  </div>
+
+  <!-- Infrastructure table -->
+  <div class="section">
+    <p class="section-label">1 · Fixed Monthly Infrastructure</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Service</th><th>Plan</th><th>Cost/mo</th><th>What it covers</th><th>Type</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Vercel</strong></td><td class="m">Pro (base)</td><td><strong>$20</strong></td><td class="m">1 TB bandwidth + 1M invocations + 1000 GB-hrs included. ~$0.04/user/mo beyond 500 users (overage: $0.15/GB bw, $0.60/1M calls, $0.18/100 GB-hrs).</td><td><span class="pill p-var">Scales</span></td></tr>
+          <tr><td><strong>Neon</strong></td><td class="m">Launch (base)</td><td><strong>$19</strong></td><td class="m">10 CU-hrs + 10 GB included. Saturates ~200 paid users — then ~$0.08/paid user/mo (Scale plan $69 at 50 CU-hrs, Business $700 at 1000 CU-hrs).</td><td><span class="pill p-var">Scales</span></td></tr>
+          <tr><td><strong>Resend</strong></td><td class="m">Pro</td><td><strong>$20</strong></td><td class="m">Transactional email — 50k/mo included</td><td><span class="pill p-fixed">Fixed</span></td></tr>
+          <tr><td><strong>Vercel Blob</strong></td><td class="m">Usage</td><td><strong>~$1–15</strong></td><td class="m">Image storage + bandwidth — $0.023/GB stored · $0.05/GB transferred. ~40× cheaper than Cloudinary at 10k listings/mo.</td><td><span class="pill p-var">Scales</span></td></tr>
+          <tr><td><strong>Stripe</strong></td><td class="m">Standard</td><td><strong>per-txn</strong></td><td class="m">Payment processing — 2.9% + $0.30 per monthly charge</td><td><span class="pill p-var">Scales</span></td></tr>
+          <tr><td><strong>Domain</strong></td><td class="m">Annual</td><td><strong>~$2</strong></td><td class="m">sparedollar.io (~$20/yr)</td><td><span class="pill p-fixed">Fixed</span></td></tr>
+          <tr class="hl-row"><td><strong>Total</strong></td><td></td><td><strong>~$66/mo</strong></td><td class="m">Baseline before API usage</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- API cost model -->
+  <div class="section">
+    <p class="section-label">2 · Claude API — Biggest Variable Cost</p>
+    <div class="formula-box">
+      <strong>Model:</strong> claude-sonnet-4-6 &nbsp;·&nbsp; <strong>Input:</strong> $3.00/MTok &nbsp;·&nbsp; <strong>Output:</strong> $15.00/MTok
+      <br>
+      <strong>Per listing call (optimized):</strong> 3 images × 1024px × ~450 tokens = 1,350 + 500 prompt = <span>1,850 input</span> &nbsp;·&nbsp; ~400 output tokens
+      <br>
+      Cost: (1,850 × $3 + 400 × $15) / 1,000,000 = $0.00555 + $0.006 = <span style="color:var(--text);font-weight:700">≈ $0.009 per SpareCredit</span>
+    </div>
+    <div class="note info">
+      <strong>Post-optimization (April 2026):</strong> Cost dropped ~58% from the pre-optimization baseline ($0.02). Changes: (1) cap at top-3 images per scan, (2) resize client-side to 1024px @ 0.75 JPEG quality, (3) max_tokens reduced from 1500 → 800. Repricing calls (no images) still cost ~$0.004. Tables below are pre-optimization baseline — the <strong>live simulator at the bottom uses the new $0.009 rate</strong>.
+    </div>
+  </div>
+
+  <!-- Per-tier table -->
+  <div class="section">
+    <p class="section-label">3 · Per-Tier Unit Economics</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Tier</th><th>Revenue</th><th>Credits</th><th>Eff. $/credit</th><th>Markup vs cost</th><th>API Cost 100%</th><th>Gross 100%</th><th>API Cost 60%</th><th>Gross 60%</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pill" style="background:rgba(107,114,128,.15);color:#9ca3af;border:1px solid rgba(107,114,128,.2)">Free</span></td><td>$0</td><td>15</td><td class="m c-red">-$0.02</td><td><span class="pill p-danger">Loss</span></td><td class="m c-red">-$0.30</td><td class="m c-red">-$0.30</td><td class="m c-red">-$0.18</td><td class="m c-red">-$0.18</td></tr>
+          <tr><td><span class="pill" style="background:rgba(59,130,246,.15);color:#3b82f6;border:1px solid rgba(59,130,246,.2)">Lite</span></td><td>$9</td><td>75</td><td class="m">$0.120</td><td><span class="pill p-good">6×</span></td><td>$1.50</td><td class="c-green"><strong>$7.50 (83%)</strong></td><td>$0.90</td><td class="c-green"><strong>$8.10 (90%)</strong></td></tr>
+          <tr><td><span class="pill" style="background:rgba(0,212,170,.15);color:#00d4aa;border:1px solid rgba(0,212,170,.2)">Growth</span></td><td>$39</td><td>400</td><td class="m">$0.098</td><td><span class="pill p-good">4.9×</span></td><td>$8.00</td><td class="c-green"><strong>$31.00 (79%)</strong></td><td>$4.80</td><td class="c-green"><strong>$34.20 (88%)</strong></td></tr>
+          <tr><td><span class="pill" style="background:rgba(168,85,247,.15);color:#a855f7;border:1px solid rgba(168,85,247,.2)">Pro</span></td><td>$89</td><td>2,000</td><td class="m">$0.045</td><td><span class="pill p-info">2.2×</span></td><td>$40.00</td><td class="c-teal"><strong>$49.00 (55%)</strong></td><td>$24.00</td><td class="c-teal"><strong>$65.00 (73%)</strong></td></tr>
+          <tr><td><span class="pill" style="background:rgba(251,146,60,.15);color:#fb923c;border:1px solid rgba(251,146,60,.2)">Business</span></td><td>$149</td><td>6,000</td><td class="m">$0.025</td><td><span class="pill p-warn">1.2×</span></td><td>$120.00</td><td class="c-orange"><strong>$29.00 (19%)</strong></td><td>$72.00</td><td class="c-teal"><strong>$77.00 (52%)</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note warn">
+      <strong>Business credits are priced at 1.24× cost.</strong> Lite is 6×, Growth 4.9×, Pro 2.2×. The higher you go, the closer included credits get to cost price. At 100% Business utilization, $120 API cost vs $149 revenue = only $29 gross. Recommend dropping Business to 4,000 credits — effective rate jumps to $0.037 and 100% margin improves to 46%.
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="section">
+    <p class="section-label">4 · Revenue vs Cost vs Margin</p>
+    <div class="two-col">
+      <div class="chart-wrap">
+        <div class="chart-title">Revenue vs API Cost (stacked) — at simulator utilization</div>
+        <canvas id="chartRevCost" height="280"></canvas>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title">Gross Margin % — 100% vs 60% utilization</div>
+        <canvas id="chartMarginPct" height="280"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="section-label">5 · Effective $/Credit vs Cost Floor — The Compression Problem</p>
+    <div class="chart-wrap">
+      <div class="chart-title">Effective price per included credit per tier vs the $0.02 API cost floor</div>
+      <canvas id="chartEffRate" height="190"></canvas>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="section-label">6 · Utilization Sensitivity — Gross $ Margin per User</p>
+    <div class="chart-wrap">
+      <div class="chart-title">Gross margin ($) per user per month as utilization moves 0→100%</div>
+      <canvas id="chartUtil" height="250"></canvas>
+    </div>
+    <div class="note neutral">Lite and Growth stay above 79% gross even at 100% utilization. Pro dips to 55% but still generates $49 gross. Business is the only tier where the slope matters — it loses $1.20 in margin per additional percent of utilization above ~80%.</div>
+  </div>
+
+  <div class="section">
+    <p class="section-label">7 · Monthly Profit Growth Curve</p>
+    <div class="chart-wrap">
+      <div class="chart-title">Net profit as paid users grow · 10:1 free:paid · tier mix 40/30/20/10% · simulator utilization</div>
+      <canvas id="chartGrowth" height="250"></canvas>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="section-label">8 · Free Tier API Cost Exposure</p>
+    <div class="two-col">
+      <div class="chart-wrap">
+        <div class="chart-title">Monthly API cost of free users (at simulator utilization)</div>
+        <canvas id="chartFree" height="260"></canvas>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title">Growth-tier paid users needed to cover free API costs</div>
+        <canvas id="chartFreeNeeded" height="260"></canvas>
+      </div>
+    </div>
+    <div class="note warn">
+      <strong>At 1% paid conversion:</strong> 10,000 free users → 100 paid. Free API cost: ~$1,080/mo. Revenue from 100 paid (realistic mix): ~$3,800. Still healthy. Below 0.5% conversion, free tier becomes a drag. Track this ratio from day one.
+    </div>
+  </div>
+
+  <!-- Break-even -->
+  <div class="section">
+    <p class="section-label">9 · Break-Even — Paid Users to Cover $66/mo Fixed</p>
+    <div class="be-grid">
+      <div class="be-card"><div class="tier">Lite only</div><div class="num">9</div><div class="sub">@ $7.50 gross each</div></div>
+      <div class="be-card"><div class="tier">Growth only</div><div class="num">3</div><div class="sub">@ $31.00 gross each</div></div>
+      <div class="be-card"><div class="tier">Pro only</div><div class="num">2</div><div class="sub">@ $49.00 gross each</div></div>
+      <div class="be-card"><div class="tier">Business only</div><div class="num">3</div><div class="sub">@ $29.00 gross each</div></div>
+      <div class="be-card" style="border-color:rgba(0,212,170,.3);background:rgba(0,212,170,.04)">
+        <div class="tier">Realistic mix</div><div class="num">3–5</div><div class="sub">paid users (60% util)</div>
+      </div>
+    </div>
+    <div class="note ok" style="margin-top:14px"><strong>Overhead is not a concern at any real scale.</strong> Even 2 Pro users fully cover all fixed costs. The unit economics question is margin compression at high utilization, not infrastructure.</div>
+  </div>
+
+  <!-- Overage -->
+  <div class="section">
+    <p class="section-label">10 · Overage Revenue — Pure Upside</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Tier</th><th>Overage Rate</th><th>API Cost</th><th>Markup</th><th>Overage Gross Margin</th><th>If 20% of users hit +100 credits</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Lite</strong></td><td>$0.14/credit</td><td class="m">$0.02</td><td><span class="pill p-good">7×</span></td><td><span class="pill p-good">86%</span></td><td class="m">+$2.80/impacted user/mo</td></tr>
+          <tr><td><strong>Growth</strong></td><td>$0.10/credit</td><td class="m">$0.02</td><td><span class="pill p-good">5×</span></td><td><span class="pill p-good">80%</span></td><td class="m">+$2.00/impacted user/mo</td></tr>
+          <tr><td><strong>Pro</strong></td><td>$0.08/credit</td><td class="m">$0.02</td><td><span class="pill p-good">4×</span></td><td><span class="pill p-good">75%</span></td><td class="m">+$1.60/impacted user/mo</td></tr>
+          <tr><td><strong>Business</strong></td><td>$0.06/credit</td><td class="m">$0.02</td><td><span class="pill p-info">3×</span></td><td><span class="pill p-good">67%</span></td><td class="m">+$1.20/impacted user/mo</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note ok">Overage is one of the best-margin revenue streams in the model. Lite overage at 7× markup is exceptional. Overage charges also naturally push power users toward higher tiers — a healthy upgrade signal.</div>
+  </div>
+
+  <!-- LTV -->
+  <div class="section">
+    <p class="section-label">11 · LTV & Max CAC (12-month retention, 60% utilization)</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Tier</th><th>Monthly Revenue</th><th>Monthly Gross</th><th>12-mo Gross LTV</th><th>Max CAC (3:1)</th><th>Max CAC (5:1)</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Lite</strong></td><td>$9</td><td>$8.10</td><td><strong>$97</strong></td><td class="m">$32</td><td class="m">$19</td></tr>
+          <tr><td><strong>Growth</strong></td><td>$39</td><td>$34.20</td><td><strong>$410</strong></td><td class="m">$137</td><td class="m">$82</td></tr>
+          <tr><td><strong>Pro</strong></td><td>$89</td><td>$65.00</td><td><strong>$780</strong></td><td class="m">$260</td><td class="m">$156</td></tr>
+          <tr><td><strong>Business</strong></td><td>$149</td><td>$77.00</td><td><strong>$924</strong></td><td class="m">$308</td><td class="m">$185</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note info"><strong>Pro has the best risk-adjusted LTV.</strong> High absolute gross LTV ($780) with margin that never drops below 55% even at worst-case utilization. Prioritize Growth → Pro upgrade path in product.</div>
+  </div>
+
+  <!-- Recommendations -->
+  <div class="section">
+    <p class="section-label">12 · Key Findings & Recommendations</p>
+    <div class="rec-grid">
+      <div class="rec danger">
+        <div class="rec-head">⚠ Business Tier Credit Count</div>
+        <div class="rec-body">6,000 credits at $149 = $0.025 effective rate — 1.24× cost. At 100% utilization, $120 API vs $149 revenue = 19% gross. <strong>Fix: cut Business to 4,000 credits.</strong> Effective rate jumps to $0.037, margin at 100% util → 46%.</div>
+      </div>
+      <div class="rec warn">
+        <div class="rec-head">⚡ Pro is the Money Tier</div>
+        <div class="rec-body">Pro generates the highest absolute gross dollar margin ($49–$65/user/mo) with a solid margin floor. <strong>Prioritize Growth → Pro upgrade.</strong> This is where the business makes real money per user.</div>
+      </div>
+      <div class="rec ok">
+        <div class="rec-head">✓ Overhead is Negligible</div>
+        <div class="rec-body">$66/mo fixed costs are covered by 2–3 paying users. The business can run experiments and grow at very low paid counts. <strong>Risk is API cost compression, not infra.</strong></div>
+      </div>
+      <div class="rec ok">
+        <div class="rec-head">✓ Overage is High-Margin</div>
+        <div class="rec-body">Overage credits bill at 3–7× cost. Users who consistently hit limits are your most valuable segment. <strong>Consider a "credit pack" add-on</strong> for power users who don't want to upgrade tiers.</div>
+      </div>
+      <div class="rec info">
+        <div class="rec-head">📊 Watch Free:Paid Ratio</div>
+        <div class="rec-body">Free tier costs $0.18/user/mo at 60% util. At 1% conversion this is comfortably covered. <strong>Set an alert: if free:paid exceeds 30:1, tighten free credits</strong> or add email verification to reduce abuse.</div>
+      </div>
+      <div class="rec info">
+        <div class="rec-head">📈 Push Annual Billing</div>
+        <div class="rec-body">Annual subscribers pay upfront and churn at ~half the rate. Growth annual = $390 cash upfront vs $39/mo. <strong>The 16.7% discount pays for itself in retained revenue by month 7.</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    <strong>For internal use only · Not for distribution.</strong> Cost estimates based on Anthropic API public pricing (April 2026): claude-sonnet-4-6 at $3.00/MTok input · $15.00/MTok output. Infrastructure from Vercel, Neon, Resend public pricing pages. Blob cost assumes $0.023/GB stored. All utilization assumptions are estimates — actual usage patterns may vary. Revise as real data becomes available.
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────
+// Post-optimization: 1024px images, top-3 cap, 800 max_tokens → ~58% cheaper vs pre-optimization ($0.02)
+const COST_PER_CREDIT = 0.009;
+const FIXED_INFRA = 61;               // Vercel Pro $20 base + Neon Launch $19 base + Resend Pro $20 + domain $2 (all scale separately)
+const FREE_CREDITS = 15;
+const STRIPE_RATE = 0.029;            // 2.9% of transaction
+const STRIPE_FIXED = 0.30;            // $0.30 flat per transaction
+// Vercel Blob (switched from Cloudinary — ~40× cheaper at 10k listings/mo)
+const BLOB_STORAGE_RATE = 0.023;      // $/GB-month stored
+const BLOB_BANDWIDTH_RATE = 0.05;     // $/GB transferred
+const IMAGE_VIEW_MULT = 5;            // avg views per listing image per month (bandwidth multiplier)
+
+// Vercel Pro $20 includes: 1 TB bandwidth · 1M function invocations · 1000 GB-hrs compute · 100k image optimizations
+// Overage: $0.15/GB bandwidth · $0.60/1M invocations · $0.18/100 GB-hrs compute
+// At scale, function invocations + compute duration dominate. Estimated ~$0.04/total user/mo beyond first 500 users.
+const VERCEL_INCLUDED_USERS = 500;
+const VERCEL_PER_USER = 0.04;
+
+// Neon Launch $19 includes: 10 CU-hrs compute · 10 GB storage
+// Overage: $0.16/CU-hr compute · $0.35/GB-mo storage
+// Launch plan saturates ~200 paid users. Scale plan is $69 for 50 CU-hrs, Business $700 for 1000 CU-hrs.
+// Continuous scaling rate ~$0.08/paid user/mo beyond first 200 paid users (reflects real Neon upgrade economics).
+const NEON_INCLUDED_PAID_USERS = 200;
+const NEON_PER_PAID_USER = 0.08;
+
+const TIERS = [
+  { id:'lite',     name:'Lite',     price:9,   credits:75,   color:'#3b82f6', colorA:'rgba(59,130,246,.7)' },
+  { id:'growth',   name:'Growth',   price:39,  credits:400,  color:'#00d4aa', colorA:'rgba(0,212,170,.7)' },
+  { id:'pro',      name:'Pro',      price:89,  credits:2000, color:'#a855f7', colorA:'rgba(168,85,247,.7)' },
+  { id:'business', name:'Business', price:149, credits:6000, color:'#fb923c', colorA:'rgba(251,146,60,.7)' },
+];
+
+const CHART_OPTS = {
+  responsive:true,
+  animation:{duration:500,easing:'easeOutQuart'},
+  plugins:{legend:{labels:{color:'rgba(240,240,244,.55)',font:{family:'DM Sans',size:11},boxWidth:12}}},
+  scales:{
+    x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(240,240,244,.45)',font:{family:'DM Sans',size:11}}},
+    y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(240,240,244,.45)',font:{family:'DM Sans',size:11}}},
+  }
+};
+
+function deepMerge(a,b){return {...a,...b,plugins:{...a.plugins,...b.plugins},scales:{...a.scales,...b.scales}}}
+function fmt$(n){return '$'+(Math.abs(n)>=1000?Math.round(n).toLocaleString():n.toFixed(2))}
+function fmtSign(n){const s=n<0?'-':'';return s+'$'+Math.abs(Math.round(n)).toLocaleString()}
+
+// ── SLIDER STATE ──────────────────────────────────────────────────
+const sliders = {
+  free:   document.getElementById('sl-free'),
+  lite:   document.getElementById('sl-lite'),
+  growth: document.getElementById('sl-growth'),
+  pro:    document.getElementById('sl-pro'),
+  biz:    document.getElementById('sl-biz'),
+  util:   document.getElementById('sl-util'),
+  imgs:   document.getElementById('sl-imgs'),
+  imgkb:  document.getElementById('sl-imgkb'),
+  cpl:    document.getElementById('sl-cpl'),
+};
+const labels = {
+  free:   document.getElementById('lbl-free'),
+  lite:   document.getElementById('lbl-lite'),
+  growth: document.getElementById('lbl-growth'),
+  pro:    document.getElementById('lbl-pro'),
+  biz:    document.getElementById('lbl-biz'),
+  util:   document.getElementById('lbl-util'),
+  imgs:   document.getElementById('lbl-imgs'),
+  imgkb:  document.getElementById('lbl-imgkb'),
+  cpl:    document.getElementById('lbl-cpl'),
+};
+
+function getVals(){
+  return {
+    freeUsers: +sliders.free.value,
+    liteUsers: +sliders.lite.value,
+    growthUsers:+sliders.growth.value,
+    proUsers:  +sliders.pro.value,
+    bizUsers:  +sliders.biz.value,
+    util:      +sliders.util.value / 100,
+    imgs:      +sliders.imgs.value,
+    imgkb:     +sliders.imgkb.value,
+    cpl:       +sliders.cpl.value,
+  };
+}
+
+// ── CHARTS SETUP ─────────────────────────────────────────────────
+let chartRevCost, chartMarginPct, chartEffRate, chartUtil, chartGrowth, chartFree, chartFreeNeeded, chartPlanPie, chartCostMix;
+
+const COST_LABELS = ['Anthropic API','Stripe Fees','Vercel Blob','Vercel Scaling','Neon Scaling','Fixed Infra'];
+const COST_COLORS = ['#ef4444','#3b82f6','#fb923c','#00d4aa','#facc15','#a855f7'];
+const COST_COLORS_A = ['rgba(239,68,68,.75)','rgba(59,130,246,.75)','rgba(251,146,60,.75)','rgba(0,212,170,.75)','rgba(250,204,21,.75)','rgba(168,85,247,.75)'];
+
+function initCharts(){
+  // Cost mix doughnut (lives in the P&L panel) — seeded with placeholder
+  // values so the first paint has geometry. Real data is populated in update().
+  chartCostMix = new Chart(document.getElementById('chartCostMix'),{
+    type:'doughnut',
+    data:{
+      labels:COST_LABELS,
+      datasets:[{
+        data:[1,1,1,1,1,1],
+        backgroundColor:COST_COLORS_A,
+        borderColor:COST_COLORS,
+        borderWidth:1.25,
+        hoverOffset:4,
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      cutout:'58%',
+      animation:{duration:450,easing:'easeOutQuart'},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            label:(ctx)=>{
+              const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+              const pct = total>0 ? ((ctx.parsed/total)*100).toFixed(1) : '0.0';
+              return `${ctx.label}: ${fmt$(ctx.parsed)} (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Plan distribution doughnut — seed with real slider defaults so the first
+  // render has geometry to draw. Doughnut charts starting with all-zero data
+  // skip the initial paint and won't refresh on update('none').
+  const iv = getVals();
+  chartPlanPie = new Chart(document.getElementById('chartPlanPie'),{
+    type:'doughnut',
+    data:{
+      labels:['Free','Lite','Growth','Pro','Business'],
+      datasets:[{
+        data:[iv.freeUsers, iv.liteUsers, iv.growthUsers, iv.proUsers, iv.bizUsers],
+        backgroundColor:['rgba(107,114,128,.55)','rgba(59,130,246,.7)','rgba(0,212,170,.7)','rgba(168,85,247,.7)','rgba(251,146,60,.7)'],
+        borderColor:['#6b7280','#3b82f6','#00d4aa','#a855f7','#fb923c'],
+        borderWidth:1.5,
+        hoverOffset:6,
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      cutout:'62%',
+      animation:{duration:500,easing:'easeOutQuart'},
+      plugins:{
+        legend:{
+          position:'right',
+          labels:{color:'rgba(240,240,244,.6)',font:{family:'DM Sans',size:11},boxWidth:10,padding:12}
+        },
+        tooltip:{
+          callbacks:{
+            label:(ctx)=>{
+              const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+              const pct = total>0 ? ((ctx.parsed/total)*100).toFixed(1) : '0.0';
+              return `${ctx.label}: ${ctx.parsed.toLocaleString()} users (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Rev vs Cost
+  chartRevCost = new Chart(document.getElementById('chartRevCost'),{
+    type:'bar',
+    data:{ labels:TIERS.map(t=>t.name), datasets:[
+      {label:'API Cost',data:[],backgroundColor:'rgba(239,68,68,.55)',borderColor:'rgba(239,68,68,.8)',borderWidth:1,borderRadius:4},
+      {label:'Gross Margin',data:[],backgroundColor:TIERS.map(t=>t.colorA),borderColor:TIERS.map(t=>t.color),borderWidth:1,borderRadius:4},
+    ]},
+    options:deepMerge(CHART_OPTS,{plugins:{legend:{labels:{color:'rgba(240,240,244,.55)',font:{family:'DM Sans',size:11},boxWidth:12}}},scales:{x:{...CHART_OPTS.scales.x,stacked:true},y:{...CHART_OPTS.scales.y,stacked:true,ticks:{...CHART_OPTS.scales.y.ticks,callback:v=>'$'+v}}}})
+  });
+
+  // Margin %
+  chartMarginPct = new Chart(document.getElementById('chartMarginPct'),{
+    type:'bar',
+    data:{labels:TIERS.map(t=>t.name),datasets:[
+      {label:'100% util',data:TIERS.map(t=>+((1-(t.credits*COST_PER_CREDIT)/t.price)*100).toFixed(1)),backgroundColor:'rgba(255,255,255,.1)',borderColor:'rgba(255,255,255,.2)',borderWidth:1,borderRadius:4},
+      {label:'60% util',data:TIERS.map(t=>+((1-(t.credits*.6*COST_PER_CREDIT)/t.price)*100).toFixed(1)),backgroundColor:TIERS.map(t=>t.colorA),borderColor:TIERS.map(t=>t.color),borderWidth:1,borderRadius:4},
+    ]},
+    options:deepMerge(CHART_OPTS,{plugins:{legend:{labels:{color:'rgba(240,240,244,.55)',font:{family:'DM Sans',size:11},boxWidth:12}}},scales:{x:{...CHART_OPTS.scales.x},y:{...CHART_OPTS.scales.y,min:0,max:100,ticks:{...CHART_OPTS.scales.y.ticks,callback:v=>v+'%'}}}})
+  });
+
+  // Effective rate
+  chartEffRate = new Chart(document.getElementById('chartEffRate'),{
+    type:'bar',
+    data:{labels:TIERS.map(t=>t.name),datasets:[
+      {label:'Eff. $/credit',data:TIERS.map(t=>+(t.price/t.credits).toFixed(4)),backgroundColor:TIERS.map(t=>t.colorA),borderColor:TIERS.map(t=>t.color),borderWidth:1,borderRadius:4,order:1},
+      {label:'Cost floor ($0.009)',data:TIERS.map(()=>COST_PER_CREDIT),type:'line',borderColor:'rgba(239,68,68,.8)',borderWidth:2,borderDash:[5,3],pointRadius:0,fill:false,order:0},
+    ]},
+    options:deepMerge(CHART_OPTS,{plugins:{legend:{labels:{color:'rgba(240,240,244,.55)',font:{family:'DM Sans',size:11},boxWidth:12}}},scales:{x:{...CHART_OPTS.scales.x},y:{...CHART_OPTS.scales.y,ticks:{...CHART_OPTS.scales.y.ticks,callback:v=>'$'+v.toFixed(3)}}}})
+  });
+
+  // Utilization sensitivity
+  const utils = Array.from({length:21},(_,i)=>i*5);
+  chartUtil = new Chart(document.getElementById('chartUtil'),{
+    type:'line',
+    data:{labels:utils.map(u=>u+'%'),datasets:TIERS.map(t=>({
+      label:t.name,
+      data:utils.map(u=>+(t.price - t.credits*(u/100)*COST_PER_CREDIT).toFixed(2)),
+      borderColor:t.color,backgroundColor:t.color+'18',borderWidth:2,pointRadius:0,tension:.3,fill:false,
+    }))},
+    options:deepMerge(CHART_OPTS,{plugins:{legend:{labels:{color:'rgba(240,240,244,.55)',font:{family:'DM Sans',size:11},boxWidth:12}}},scales:{x:{...CHART_OPTS.scales.x,title:{display:true,text:'Utilization %',color:'rgba(240,240,244,.35)',font:{family:'DM Sans',size:10}}},y:{...CHART_OPTS.scales.y,ticks:{...CHART_OPTS.scales.y.ticks,callback:v=>'$'+v}}}})
+  });
+
+  // Growth curve
+  const paidCounts=[0,5,10,20,30,50,75,100,150,200,300];
+  chartGrowth = new Chart(document.getElementById('chartGrowth'),{
+    type:'line',
+    data:{labels:paidCounts,datasets:[
+      {label:'Net Profit',data:[],borderColor:'#00d4aa',backgroundColor:'rgba(0,212,170,.1)',borderWidth:2.5,pointRadius:3,tension:.4,fill:true},
+      {label:'Revenue',data:[],borderColor:'rgba(168,85,247,.6)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,tension:.4,fill:false},
+    ]},
+    options:deepMerge(CHART_OPTS,{plugins:{legend:{labels:{color:'rgba(240,240,244,.55)',font:{family:'DM Sans',size:11},boxWidth:12}}},scales:{x:{...CHART_OPTS.scales.x,title:{display:true,text:'Paid Users',color:'rgba(240,240,244,.35)',font:{family:'DM Sans',size:10}}},y:{...CHART_OPTS.scales.y,ticks:{...CHART_OPTS.scales.y.ticks,callback:v=>'$'+v.toLocaleString()}}}})
+  });
+
+  // Free user cost
+  const freeCounts=[0,100,250,500,1000,2000,3000,5000,10000];
+  chartFree = new Chart(document.getElementById('chartFree'),{
+    type:'bar',
+    data:{labels:freeCounts.map(n=>n>=1000?(n/1000)+'k':n),datasets:[
+      {label:'Free API cost/mo',data:[],backgroundColor:'rgba(239,68,68,.5)',borderColor:'rgba(239,68,68,.8)',borderWidth:1,borderRadius:4},
+    ]},
+    options:deepMerge(CHART_OPTS,{plugins:{legend:{display:false}},scales:{x:{...CHART_OPTS.scales.x,title:{display:true,text:'Free Users',color:'rgba(240,240,244,.35)',font:{family:'DM Sans',size:10}}},y:{...CHART_OPTS.scales.y,ticks:{...CHART_OPTS.scales.y.ticks,callback:v=>'$'+v}}}})
+  });
+  chartFree._freeCounts = freeCounts;
+
+  chartFreeNeeded = new Chart(document.getElementById('chartFreeNeeded'),{
+    type:'bar',
+    data:{labels:freeCounts.map(n=>n>=1000?(n/1000)+'k':n),datasets:[
+      {label:'Growth users needed',data:[],backgroundColor:'rgba(0,212,170,.55)',borderColor:'rgba(0,212,170,.8)',borderWidth:1,borderRadius:4},
+    ]},
+    options:deepMerge(CHART_OPTS,{plugins:{legend:{display:false}},scales:{x:{...CHART_OPTS.scales.x,title:{display:true,text:'Free Users',color:'rgba(240,240,244,.35)',font:{family:'DM Sans',size:10}}},y:{...CHART_OPTS.scales.y}}})
+  });
+  chartFreeNeeded._freeCounts = freeCounts;
+}
+
+// ── UPDATE ────────────────────────────────────────────────────────
+function update(){
+  const v = getVals();
+  const MIX = [.40,.30,.20,.10]; // Lite/Growth/Pro/Business
+  const userCounts = [v.liteUsers, v.growthUsers, v.proUsers, v.bizUsers];
+
+  // Revenue
+  const revenue = TIERS.reduce((s,t,i) => s + userCounts[i]*t.price, 0);
+
+  // API cost (paid tiers)
+  const apiCostPaid = TIERS.reduce((s,t,i) => s + userCounts[i]*t.credits*v.util*COST_PER_CREDIT, 0);
+
+  // API cost (free tier)
+  const apiCostFree = v.freeUsers * FREE_CREDITS * v.util * COST_PER_CREDIT;
+
+  // Stripe fees: 2.9% + $0.30 per paid user (one monthly charge each)
+  const paidUserCount = userCounts.reduce((s,n)=>s+n,0);
+  const stripeCost = TIERS.reduce((s,t,i) => s + userCounts[i]*(t.price*STRIPE_RATE + STRIPE_FIXED), 0);
+
+  // Total listings created (for cloudinary)
+  const totalListings = TIERS.reduce((s,t,i) => s + userCounts[i]*t.credits*v.util/v.cpl, 0)
+                      + v.freeUsers*FREE_CREDITS*v.util/v.cpl;
+
+  // Vercel Blob cost: $0.023/GB storage + $0.05/GB bandwidth. No per-transform fees.
+  const storageGB = totalListings * v.imgs * v.imgkb / 1024 / 1024;
+  const bandwidthGB = storageGB * IMAGE_VIEW_MULT;
+  const blobCost = storageGB * BLOB_STORAGE_RATE + bandwidthGB * BLOB_BANDWIDTH_RATE;
+
+  // Vercel variable: Pro plan covers ~500 total users. Function invocations + compute scale beyond.
+  const totalUserCount = v.freeUsers + paidUserCount;
+  const vercelVariable = Math.max(0, totalUserCount - VERCEL_INCLUDED_USERS) * VERCEL_PER_USER;
+
+  // Neon variable: Launch plan covers ~200 paid users. Beyond that, compute/storage scale aggressively.
+  const neonVariable = Math.max(0, paidUserCount - NEON_INCLUDED_PAID_USERS) * NEON_PER_PAID_USER;
+
+  const totalCost = apiCostPaid + apiCostFree + stripeCost + FIXED_INFRA + blobCost + vercelVariable + neonVariable;
+  const netProfit = revenue - totalCost;
+  const margin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+  const totalUsers = v.freeUsers + userCounts.reduce((s,n)=>s+n,0);
+  const paidUsers = userCounts.reduce((s,n)=>s+n,0);
+
+  // ── Update P&L panel ──
+  document.getElementById('pnl-rev').textContent = fmt$(revenue);
+  document.getElementById('pnl-api').textContent = '-' + fmt$(apiCostPaid);
+  document.getElementById('pnl-stripe').textContent = '-' + fmt$(stripeCost);
+  document.getElementById('pnl-blob').textContent = '-' + fmt$(blobCost);
+  document.getElementById('pnl-vercel').textContent = '-' + fmt$(vercelVariable);
+  document.getElementById('pnl-neon').textContent = '-' + fmt$(neonVariable);
+  document.getElementById('pnl-fixed').textContent = '-$' + FIXED_INFRA;
+  document.getElementById('pnl-free-cost').textContent = '-' + fmt$(apiCostFree);
+
+  const netEl = document.getElementById('pnl-net');
+  netEl.textContent = fmtSign(netProfit);
+  netEl.style.color = netProfit >= 0 ? 'var(--green)' : 'var(--red)';
+
+  const fillEl = document.getElementById('pnl-margin-fill');
+  const clampedPct = Math.max(0, Math.min(100, margin));
+  fillEl.style.width = clampedPct + '%';
+  fillEl.style.background = margin > 50 ? 'var(--green)' : margin > 20 ? 'var(--teal)' : margin > 0 ? 'var(--orange)' : 'var(--red)';
+  document.getElementById('pnl-margin-label').textContent = revenue > 0 ? margin.toFixed(1) + '% net margin' : 'No revenue yet';
+
+  const totalApiCost = apiCostPaid + apiCostFree;
+  const costBase = totalApiCost + stripeCost + blobCost + vercelVariable + neonVariable + FIXED_INFRA;
+
+  // ── Cost mix doughnut + legend ──
+  const costData = [totalApiCost, stripeCost, blobCost, vercelVariable, neonVariable, FIXED_INFRA];
+  chartCostMix.data.datasets[0].data = costData;
+  chartCostMix.update('none');
+
+  const legendHtml = COST_LABELS.map((lbl,i)=>{
+    const pct = costBase > 0 ? ((costData[i]/costBase)*100).toFixed(0) : '0';
+    return `<div class="legend-item">
+      <span class="dot" style="background:${COST_COLORS[i]}"></span>
+      <span class="lbl">${lbl}</span>
+      <span class="amt">${pct}%</span>
+    </div>`;
+  }).join('');
+  document.getElementById('costLegend').innerHTML = legendHtml;
+
+  // ── Plan distribution pie ──
+  chartPlanPie.data.datasets[0].data = [v.freeUsers, v.liteUsers, v.growthUsers, v.proUsers, v.bizUsers];
+  chartPlanPie.update('none');
+
+  // ── Revenue contribution bars (Free shown as negative drag) ──
+  const revByTier = TIERS.map((t,i)=>userCounts[i]*t.price);
+  const revMax = Math.max(...revByTier, apiCostFree, 1);
+  const freeDragPct = revenue > 0 ? '-' + (apiCostFree/revenue*100).toFixed(1) + '%' : 'drag';
+  const freeBarHtml = `<div class="rev-bar-row">
+      <div class="rev-bar-head">
+        <span class="tier-name" style="color:#9ca3af">Free</span>
+        <span><span class="tier-amt c-red">-${fmt$(apiCostFree)}</span><span class="tier-pct">· ${freeDragPct}</span></span>
+      </div>
+      <div class="rev-bar-track"><div class="rev-bar-fill" style="width:${(apiCostFree/revMax*100).toFixed(1)}%;background:rgba(239,68,68,.55)"></div></div>
+      <div class="rev-bar-sub">${v.freeUsers.toLocaleString()} × $0 · API drag at ${(v.util*100).toFixed(0)}% util</div>
+    </div>`;
+  const paidBarsHtml = TIERS.map((t,i)=>{
+    const amt = revByTier[i];
+    const pct = revenue > 0 ? (amt/revenue*100).toFixed(1) : '0.0';
+    const widthPct = (amt/revMax*100).toFixed(1);
+    return `<div class="rev-bar-row">
+      <div class="rev-bar-head">
+        <span class="tier-name" style="color:${t.color}">${t.name}</span>
+        <span><span class="tier-amt">${fmt$(amt)}</span><span class="tier-pct">· ${pct}%</span></span>
+      </div>
+      <div class="rev-bar-track"><div class="rev-bar-fill" style="width:${widthPct}%;background:${t.color}"></div></div>
+      <div class="rev-bar-sub">${userCounts[i].toLocaleString()} × $${t.price}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('revBars').innerHTML = freeBarHtml + paidBarsHtml;
+  const arpu = paidUsers > 0 ? revenue / paidUsers : 0;
+  document.getElementById('rev-arpu').textContent = paidUsers > 0 ? fmt$(arpu) : '—';
+
+  // ── Key stats ──
+  document.getElementById('ks-users').textContent = totalUsers.toLocaleString();
+  document.getElementById('ks-users-sub').textContent = paidUsers + ' paid · ' + v.freeUsers.toLocaleString() + ' free';
+  document.getElementById('ks-rev').textContent = fmt$(revenue);
+  document.getElementById('ks-api').textContent = fmt$(totalApiCost);
+  const mEl = document.getElementById('ks-margin');
+  mEl.textContent = revenue > 0 ? margin.toFixed(1) + '%' : '—';
+  mEl.className = 'val ' + (margin>50?'c-green':margin>20?'c-teal':margin>0?'c-orange':'c-red');
+
+  // ── Update charts ──
+
+  // Rev vs Cost
+  chartRevCost.data.datasets[0].data = TIERS.map((t,i)=>+(userCounts[i]*t.credits*v.util*COST_PER_CREDIT).toFixed(2));
+  chartRevCost.data.datasets[1].data = TIERS.map((t,i)=>+(userCounts[i]*(t.price - t.credits*v.util*COST_PER_CREDIT)).toFixed(2));
+  chartRevCost.update('none');
+
+  // Margin %
+  chartMarginPct.data.datasets[0].data = TIERS.map(t=>+((1-(t.credits*COST_PER_CREDIT)/t.price)*100).toFixed(1));
+  chartMarginPct.data.datasets[1].data = TIERS.map(t=>+((1-(t.credits*v.util*COST_PER_CREDIT)/t.price)*100).toFixed(1));
+  chartMarginPct.update('none');
+
+  // Growth curve
+  const paidCounts=[0,5,10,20,30,50,75,100,150,200,300];
+  const avgGross = TIERS.reduce((s,t,i)=>s+MIX[i]*(t.price-t.credits*v.util*COST_PER_CREDIT),0);
+  const freeApiPerPaid = 10*(FREE_CREDITS*v.util*COST_PER_CREDIT);
+  chartGrowth.data.datasets[0].data = paidCounts.map(n=>+(n*avgGross - n*freeApiPerPaid - FIXED_INFRA).toFixed(0));
+  chartGrowth.data.datasets[1].data = paidCounts.map(n=>+(n*TIERS.reduce((s,t,i)=>s+MIX[i]*t.price,0)).toFixed(0));
+  chartGrowth.update('none');
+
+  // Free tier charts
+  const fc = chartFree._freeCounts;
+  const growthGross = TIERS[1].price - TIERS[1].credits*v.util*COST_PER_CREDIT;
+  chartFree.data.datasets[0].data = fc.map(n=>+(n*FREE_CREDITS*v.util*COST_PER_CREDIT).toFixed(2));
+  chartFreeNeeded.data.datasets[0].data = fc.map(n=>Math.ceil((n*FREE_CREDITS*v.util*COST_PER_CREDIT)/growthGross));
+  chartFree.update('none');
+  chartFreeNeeded.update('none');
+}
+
+// ── BIND SLIDERS ──────────────────────────────────────────────────
+Object.entries(sliders).forEach(([key, el])=>{
+  el.addEventListener('input', ()=>{
+    const v = el.value;
+    labels[key].textContent = key==='util' ? v+'%' : v;
+    update();
+  });
+});
+
+// ── INIT ─────────────────────────────────────────────────────────
+initCharts();
+update();
+</script>
+</body>
+</html>

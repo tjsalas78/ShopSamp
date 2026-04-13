@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String    @unique
+  hashedPassword String?
+  emailVerified  DateTime?
+  image          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  accounts       Account[]
+  sessions       Session[]
+  passwordResets PasswordResetToken[]
+  shopifyStores  ShopifyStore[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  id      String   @id @default(cuid())
+  email   String
+  token   String   @unique
+  expires DateTime
+
+  user User @relation(fields: [email], references: [email], onDelete: Cascade)
+
+  @@index([email])
+}
+
+// ─── Shopify Integration ─────────────────────────────────────────────────
+model ShopifyStore {
+  id                  String    @id @default(cuid())
+  userId              String
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Shopify OAuth information
+  shopName            String    // e.g., "my-store" (from shop.myshopify.com)
+  shopDomain          String    @unique // Full domain for API calls
+  accessToken         String    @db.Text // Encrypted AES-256-CBC token
+  scope               String    // OAuth scopes granted
+
+  isActive            Boolean   @default(true)
+  lastSyncedAt        DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  products            ShopifyProduct[]
+
+  @@index([userId])
+}
+
+model ShopifyProduct {
+  id                  String    @id @default(cuid())
+  storeId             String
+  store               ShopifyStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  // Shopify product reference
+  shopifyProductId    String    // Shopify's internal product ID
+  title               String
+  isDraft             Boolean   @default(true)
+
+  // Original generated data for reference/editing
+  sourceData          Json      // Complete product sample data
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@unique([storeId, shopifyProductId])
+  @@index([storeId])
+}
+

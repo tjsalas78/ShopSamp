@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpareDollar — Pricing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --bg-card: #1a1a24;
+      --bg-card-hover: #22222e;
+      --bg-input: #2a2a3a;
+      --bg-tooltip: #252532;
+      --text: #f4f4f6;
+      --text-secondary: #9999a8;
+      --text-muted: #666677;
+      --accent: #00d4aa;
+      --accent-hover: #00b894;
+      --purple: #a855f7;
+      --orange: #fb923c;
+      --border: rgba(255, 255, 255, 0.06);
+      --border-accent: rgba(0, 212, 170, 0.3);
+      --glow: rgba(0, 212, 170, 0.15);
+      --font-display: 'Fraunces', Georgia, serif;
+      --font-body: 'DM Sans', sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* Background */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+    }
+
+    .bg-glow {
+      position: fixed;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      filter: blur(100px);
+      pointer-events: none;
+      opacity: 0.2;
+    }
+    .bg-glow.teal { background: var(--accent); top: -150px; left: -100px; }
+    .bg-glow.purple { background: var(--purple); bottom: -200px; right: -150px; opacity: 0.12; }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Icons */
+    .icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1em;
+      height: 1em;
+      vertical-align: middle;
+    }
+    .icon svg {
+      width: 100%;
+      height: 100%;
+      fill: currentColor;
+    }
+    .icon-sm { font-size: 1rem; }
+    .icon-md { font-size: 1.5rem; }
+    .icon-lg { font-size: 2rem; }
+
+    /* Header */
+    header {
+      padding: 24px 0;
+    }
+    .logo {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--bg);
+    }
+    .logo-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 60px 0 40px;
+    }
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 700;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--text) 0%, var(--text-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    /* Calculator Section */
+    .calculator {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 40px;
+    }
+    .calculator-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .calculator-header h2 {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+    .billing-toggle {
+      display: flex;
+      background: var(--bg-input);
+      border-radius: 100px;
+      padding: 4px;
+      gap: 4px;
+    }
+    .billing-toggle button {
+      padding: 8px 18px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .billing-toggle button.active {
+      background: var(--accent);
+      color: var(--bg);
+      font-weight: 600;
+    }
+    .save-tag {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      background: rgba(168, 85, 247, 0.15);
+      color: var(--purple);
+      border-radius: 100px;
+      font-weight: 600;
+    }
+
+    .sliders {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 600px) {
+      .sliders { grid-template-columns: 1fr; }
+    }
+    .slider-group label {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+    .slider-group label .value {
+      margin-left: auto;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .slider-group input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--bg-input);
+      appearance: none;
+      cursor: pointer;
+    }
+    .slider-group input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 212, 170, 0.4);
+    }
+    .slider-hint {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    /* Tooltips */
+    .tip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--bg-input);
+      color: var(--text-muted);
+      cursor: help;
+      transition: all 0.2s;
+    }
+    .tip svg {
+      width: 12px;
+      height: 12px;
+      fill: currentColor;
+    }
+    .tip:hover {
+      background: var(--accent);
+      color: var(--bg);
+    }
+    .tip-content {
+      position: absolute;
+      bottom: calc(100% + 12px);
+      left: 50%;
+      transform: translateX(-50%) scale(0.95);
+      width: 260px;
+      padding: 14px 16px;
+      background: var(--bg-tooltip);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 400;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      text-align: left;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
+    .tip-content::before {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 8px solid transparent;
+      border-top-color: var(--bg-tooltip);
+    }
+    .tip:hover .tip-content {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) scale(1);
+    }
+    .tip-content strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* SpareCredits branding */
+    .spare-credit {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--accent);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .spare-credit .coin-icon {
+      width: 18px;
+      height: 18px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--bg);
+    }
+    .spare-credit .coin-icon svg {
+      width: 10px;
+      height: 10px;
+      fill: currentColor;
+    }
+
+    .recommendation {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      background: linear-gradient(135deg, rgba(0, 212, 170, 0.08), rgba(168, 85, 247, 0.05));
+      border: 1px solid var(--border-accent);
+      border-radius: 12px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .recommendation-text {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .recommendation-text .gen-count {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .recommendation-text .gen-label {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .recommendation-tier {
+      padding: 10px 20px;
+      background: var(--accent);
+      color: var(--bg);
+      border-radius: 100px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    /* Pricing Grid */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+      margin-bottom: 60px;
+    }
+    @media (max-width: 1200px) {
+      .pricing-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 800px) {
+      .pricing-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .pricing-grid { grid-template-columns: 1fr; }
+    }
+
+    .commission-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(0, 212, 170, 0.12);
+      border: 1px solid rgba(0, 212, 170, 0.25);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 100px;
+      margin-top: 8px;
+    }
+
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .pricing-card:hover {
+      border-color: var(--border-accent);
+      transform: translateY(-3px);
+      box-shadow: 0 0 40px var(--glow);
+    }
+    .pricing-card.featured {
+      border-color: var(--accent);
+      background: linear-gradient(180deg, var(--bg-card) 0%, rgba(0, 212, 170, 0.03) 100%);
+    }
+    .pricing-card.featured::before {
+      content: 'Best Value';
+      position: absolute;
+      top: -11px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 5px 14px;
+      background: var(--accent);
+      color: var(--bg);
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-radius: 100px;
+    }
+    .pricing-card.recommended {
+      border-color: var(--purple);
+      box-shadow: 0 0 30px rgba(168, 85, 247, 0.15);
+    }
+
+    .tier-header {
+      margin-bottom: 20px;
+    }
+    .tier-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+    .tier-icon svg {
+      width: 24px;
+      height: 24px;
+      fill: currentColor;
+    }
+    .tier-icon.starter { background: rgba(156, 163, 175, 0.15); color: #9ca3af; }
+    .tier-icon.growth { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+    .tier-icon.pro { background: rgba(0, 212, 170, 0.15); color: var(--accent); }
+    .tier-icon.business { background: rgba(168, 85, 247, 0.15); color: var(--purple); }
+
+    .tier-name {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .tier-desc {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .tier-price {
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .price-row {
+      display: flex;
+      align-items: baseline;
+      gap: 3px;
+    }
+    .price-currency {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .price-amount {
+      font-family: var(--font-display);
+      font-size: 2.8rem;
+      font-weight: 700;
+    }
+    .price-period {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+    .price-note {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+    .price-note span { color: var(--accent); font-weight: 600; }
+
+    .tier-features {
+      list-style: none;
+      flex-grow: 1;
+      margin-bottom: 20px;
+    }
+    .tier-features li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    .tier-features li .check {
+      color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .tier-features li .check svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+    .tier-features li.muted {
+      color: var(--text-muted);
+    }
+    .tier-features li.muted .check {
+      color: var(--text-muted);
+    }
+    .tier-features .highlight {
+      color: var(--text);
+      font-weight: 600;
+    }
+    .tier-features .overage {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      padding-left: 24px;
+      margin-top: -4px;
+    }
+
+    .tier-cta {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tier-cta.primary {
+      background: var(--accent);
+      color: var(--bg);
+    }
+    .tier-cta.primary:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 4px 20px var(--glow);
+    }
+    .tier-cta.secondary {
+      background: var(--bg-input);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .tier-cta.secondary:hover {
+      background: var(--text);
+      color: var(--bg);
+    }
+
+    /* What Counts Section */
+    .info-section {
+      padding: 50px 0;
+      border-top: 1px solid var(--border);
+    }
+    .info-section h2 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      text-align: center;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    @media (max-width: 600px) {
+      .info-grid { grid-template-columns: 1fr; }
+    }
+    .info-card {
+      padding: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .info-card h3 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .info-card h3 svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+    .info-card h3.uses { color: var(--orange); }
+    .info-card h3.free { color: var(--accent); }
+    .info-card ul {
+      list-style: none;
+    }
+    .info-card li {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      padding: 6px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Footer */
+    footer {
+      padding: 30px 0;
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+    footer p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow teal"></div>
+  <div class="bg-glow purple"></div>
+
+  <!-- SVG Sprite (hidden) -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+    <symbol id="icon-dollar" viewBox="0 0 24 24">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z"/>
+    </symbol>
+    <symbol id="icon-seedling" viewBox="0 0 24 24">
+      <path d="M12 22V9M12 9C12 9 12 6 9 3C6 6 6 9 9 9C9 9 9 6 12 3C15 6 15 9 12 9M5 12C5 12 8 12 11 15C8 18 5 18 5 15C5 15 8 15 5 12M19 12C19 12 16 12 13 15C16 18 19 18 19 15C19 15 16 15 19 12"/>
+    </symbol>
+    <symbol id="icon-rocket" viewBox="0 0 24 24">
+      <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09zM12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+      <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
+    </symbol>
+    <symbol id="icon-bolt" viewBox="0 0 24 24">
+      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+    </symbol>
+    <symbol id="icon-building" viewBox="0 0 24 24">
+      <path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/>
+    </symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24">
+      <path d="M20 6L9 17l-5-5"/>
+    </symbol>
+    <symbol id="icon-minus" viewBox="0 0 24 24">
+      <path d="M5 12h14"/>
+    </symbol>
+    <symbol id="icon-info" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M12 16v-4M12 8h.01"/>
+    </symbol>
+    <symbol id="icon-zap" viewBox="0 0 24 24">
+      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+    </symbol>
+    <symbol id="icon-check-circle" viewBox="0 0 24 24">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+      <path d="M22 4L12 14.01l-3-3"/>
+    </symbol>
+    <symbol id="icon-coin" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M12 6v12M9 9h4.5a1.5 1.5 0 0 1 0 3H9h4.5a1.5 1.5 0 0 1 0 3H9"/>
+    </symbol>
+  </svg>
+
+  <header>
+    <div class="container">
+      <a href="#" class="logo">
+        <span class="logo-icon">
+          <svg><use href="#icon-dollar"/></svg>
+        </span>
+        SpareDollar
+      </a>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <h1>Pricing that grows with you</h1>
+      <p>From closet cleanouts to full-time reselling. Pay for what you use.</p>
+    </div>
+  </section>
+
+  <section class="container">
+    <!-- Calculator -->
+    <div class="calculator">
+      <div class="calculator-header">
+        <h2>How many listings do you create?</h2>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="billing-toggle">
+            <button id="btnMonthly" class="active">Monthly</button>
+            <button id="btnAnnual">Annual</button>
+          </div>
+          <span class="save-tag">Save 17%</span>
+        </div>
+      </div>
+
+      <div class="sliders">
+        <div class="slider-group">
+          <label>
+            Active listings per month
+            <span class="tip">
+              <svg><use href="#icon-info"/></svg>
+              <span class="tip-content">How many items you typically have listed for sale at any given time</span>
+            </span>
+            <span class="value" id="itemsValue">50</span>
+          </label>
+          <input type="range" id="itemsSlider" min="5" max="500" value="50">
+        </div>
+        <div class="slider-group">
+          <label>
+            <span class="spare-credit">
+              SpareCredits
+              <span class="coin-icon"><svg><use href="#icon-dollar"/></svg></span>
+            </span>
+            per listing
+            <span class="tip">
+              <svg><use href="#icon-info"/></svg>
+              <span class="tip-content"><strong>1 SpareCredit = 1 AI-powered action</strong><br><br>Create a listing, reprice, check condition, analyze market, and more.</span>
+            </span>
+            <span class="value" id="regenValue">1.5×</span>
+          </label>
+          <input type="range" id="regenSlider" min="1" max="3" value="1.5" step="0.5">
+          <div class="slider-hint">
+            <span>Create only</span>
+            <span>Create + reprice + updates</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="recommendation">
+        <div class="recommendation-text">
+          <span class="gen-count" id="totalGens">75</span>
+          <span class="gen-label">
+            <span class="spare-credit">
+              SpareCredits
+              <span class="coin-icon"><svg><use href="#icon-dollar"/></svg></span>
+            </span>
+            /month
+            <span class="tip">
+              <svg><use href="#icon-info"/></svg>
+              <span class="tip-content">Based on your listings × credits per listing. Each AI action uses 1 SpareCredit.</span>
+            </span>
+          </span>
+        </div>
+        <div class="recommendation-tier" id="recommendedTier">Recommended: Growth</div>
+      </div>
+    </div>
+
+    <!-- Pricing Cards -->
+    <div class="pricing-grid" id="pricingGrid"></div>
+  </section>
+
+  <section class="info-section">
+    <div class="container">
+      <h2>
+        What uses a 
+        <span class="spare-credit">
+          SpareCredit
+          <span class="coin-icon"><svg><use href="#icon-dollar"/></svg></span>
+        </span>?
+      </h2>
+      <div class="info-grid">
+        <div class="info-card">
+          <h3 class="uses">
+            <svg><use href="#icon-zap"/></svg>
+            Uses 1 credit
+          </h3>
+          <ul>
+            <li>
+              Creating a listing from photos
+              <span class="tip">
+                <svg><use href="#icon-info"/></svg>
+                <span class="tip-content">Upload images → AI identifies brand, condition, category and writes your listing</span>
+              </span>
+            </li>
+            <li>
+              Smart repricing / market check
+              <span class="tip">
+                <svg><use href="#icon-info"/></svg>
+                <span class="tip-content">AI analyzes current market data to suggest optimal pricing</span>
+              </span>
+            </li>
+            <li>
+              Condition or authenticity analysis
+              <span class="tip">
+                <svg><use href="#icon-info"/></svg>
+                <span class="tip-content">AI examines photos for wear, damage, or authenticity markers</span>
+              </span>
+            </li>
+          </ul>
+        </div>
+        <div class="info-card">
+          <h3 class="free">
+            <svg><use href="#icon-check-circle"/></svg>
+            Always free
+          </h3>
+          <ul>
+            <li>
+              Manual edits to listings
+              <span class="tip">
+                <svg><use href="#icon-info"/></svg>
+                <span class="tip-content">Edit titles, descriptions, prices anytime without using a credit</span>
+              </span>
+            </li>
+            <li>
+              Cross-posting to marketplaces
+              <span class="tip">
+                <svg><use href="#icon-info"/></svg>
+                <span class="tip-content">Push your listing to multiple platforms with one click</span>
+              </span>
+            </li>
+            <li>
+              Inventory sync & management
+              <span class="tip">
+                <svg><use href="#icon-info"/></svg>
+                <span class="tip-content">Keep stock levels in sync across all your connected marketplaces</span>
+              </span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>© 2026 SpareDollar. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    // =====================================================
+    // 🎛️ PRICING CONFIG - EDIT VALUES HERE
+    // =====================================================
+    
+    const CONFIG = {
+      tiers: [
+        {
+          id: 'starter',
+          name: 'Free',
+          icon: 'seedling',
+          iconClass: 'starter',
+          desc: 'Try it out',
+          priceMonthly: 0,
+          priceAnnual: 0,
+          generations: 15,
+          overageRate: null,
+          features: [
+            { text: '<span class="highlight">15</span> SpareCredits/mo', hasCredit: true, type: 'normal' },
+            { text: 'Hard stop at limit', tip: 'Upgrade when you need more', type: 'muted' },
+            { text: '1 marketplace', tip: 'Connect to eBay, Poshmark, or Depop', type: 'normal' },
+            { text: '4 images per listing', type: 'normal' },
+          ],
+          cta: 'Start Free',
+          ctaStyle: 'secondary',
+        },
+        {
+          id: 'lite',
+          name: 'Lite',
+          icon: 'seedling',
+          iconClass: 'growth',
+          desc: 'Getting started',
+          priceMonthly: 9,
+          priceAnnual: 90,
+          generations: 75,
+          overageRate: 0.14,
+          features: [
+            { text: '<span class="highlight">75</span> SpareCredits/mo', hasCredit: true, type: 'normal' },
+            { text: 'Then $0.14/credit', tip: 'Pay-as-you-go after included credits', type: 'overage' },
+            { text: '2 marketplaces', tip: 'Connect eBay + Poshmark or Depop', type: 'normal' },
+            { text: '6 images per listing', type: 'normal' },
+          ],
+          cta: 'Get Lite',
+          ctaStyle: 'secondary',
+        },
+        {
+          id: 'growth',
+          name: 'Growth',
+          icon: 'rocket',
+          iconClass: 'pro',
+          desc: 'Side hustlers',
+          priceMonthly: 39,
+          priceAnnual: 390,
+          generations: 400,
+          overageRate: 0.10,
+          featured: true,
+          features: [
+            { text: '<span class="highlight">400</span> SpareCredits/mo', hasCredit: true, type: 'normal' },
+            { text: 'Then $0.10/credit', tip: 'Pay-as-you-go after included credits', type: 'overage' },
+            { text: '3 marketplaces', tip: 'Cross-list to eBay, Poshmark, Depop', type: 'normal' },
+            { text: 'Bulk import', tip: 'Upload via CSV or photo batch', type: 'normal' },
+          ],
+          cta: 'Get Growth',
+          ctaStyle: 'primary',
+        },
+        {
+          id: 'pro',
+          name: 'Pro',
+          icon: 'bolt',
+          iconClass: 'business',
+          desc: 'Full-time resellers',
+          priceMonthly: 89,
+          priceAnnual: 890,
+          generations: 2000,
+          overageRate: 0.08,
+          features: [
+            { text: '<span class="highlight">2,000</span> SpareCredits/mo', hasCredit: true, type: 'normal' },
+            { text: 'Then $0.08/credit', tip: 'Best overage rate available', type: 'overage' },
+            { text: 'Unlimited marketplaces', tip: 'All platforms, current and future', type: 'normal' },
+            { text: 'Inventory sync + analytics', tip: 'Real-time sync & dashboards', type: 'normal' },
+            { text: 'Priority support', tip: 'Faster response times', type: 'normal' },
+          ],
+          cta: 'Go Pro',
+          ctaStyle: 'secondary',
+        },
+        {
+          id: 'business',
+          name: 'Business',
+          icon: 'building',
+          iconClass: 'business',
+          desc: 'Teams & resale shops',
+          priceMonthly: 149,
+          priceAnnual: 1490,
+          generations: 6000,
+          overageRate: 0.06,
+          features: [
+            { text: '<span class="highlight">6,000</span> SpareCredits/mo', hasCredit: true, type: 'normal' },
+            { text: 'Then $0.06/credit', tip: 'Lowest overage rate available', type: 'overage' },
+            { text: 'Unlimited marketplaces', tip: 'All platforms, current and future', type: 'normal' },
+            { text: '5 team members', tip: 'Role-based permissions per seat', type: 'normal' },
+            { text: 'Dedicated support + SLA', tip: 'Priority response & uptime guarantee', type: 'normal' },
+          ],
+          cta: 'Get Business',
+          ctaStyle: 'secondary',
+        },
+      ],
+    };
+
+    // =====================================================
+    // LOGIC
+    // =====================================================
+
+    let isAnnual = false;
+    let recommendedTierId = null;
+
+    const itemsSlider = document.getElementById('itemsSlider');
+    const regenSlider = document.getElementById('regenSlider');
+    const itemsValue = document.getElementById('itemsValue');
+    const regenValue = document.getElementById('regenValue');
+    const totalGens = document.getElementById('totalGens');
+    const recommendedTier = document.getElementById('recommendedTier');
+    const btnMonthly = document.getElementById('btnMonthly');
+    const btnAnnual = document.getElementById('btnAnnual');
+    const pricingGrid = document.getElementById('pricingGrid');
+
+    function calculateGenerations() {
+      const items = parseInt(itemsSlider.value);
+      const regen = parseFloat(regenSlider.value);
+      return Math.round(items * regen);
+    }
+
+    function findRecommendedTier(gens) {
+      for (const tier of CONFIG.tiers) {
+        if (tier.generations >= gens) return tier;
+      }
+      return CONFIG.tiers[CONFIG.tiers.length - 1];
+    }
+
+    function updateCalculator() {
+      const items = parseInt(itemsSlider.value);
+      const regen = parseFloat(regenSlider.value);
+      const gens = calculateGenerations();
+
+      itemsValue.textContent = items;
+      regenValue.textContent = regen + '×';
+      totalGens.textContent = gens;
+
+      const rec = findRecommendedTier(gens);
+      recommendedTierId = rec.id;
+      recommendedTier.textContent = `Recommended: ${rec.name}`;
+
+      renderPricingCards();
+    }
+
+    function renderPricingCards() {
+      pricingGrid.innerHTML = '';
+
+      CONFIG.tiers.forEach(tier => {
+        const price = isAnnual ? Math.round(tier.priceAnnual / 12) : tier.priceMonthly;
+        const isRec = tier.id === recommendedTierId;
+
+        const card = document.createElement('div');
+        card.className = `pricing-card${tier.featured ? ' featured' : ''}${isRec && !tier.featured ? ' recommended' : ''}`;
+
+        let featuresHTML = tier.features.map(f => {
+          const tipHTML = f.tip ? `
+            <span class="tip">
+              <svg><use href="#icon-info"/></svg>
+              <span class="tip-content">${f.tip}</span>
+            </span>
+          ` : '';
+          
+          if (f.type === 'overage') {
+            return `<li class="overage">${f.text} ${tipHTML}</li>`;
+          }
+          
+          const checkIcon = f.type === 'muted' 
+            ? '<span class="check"><svg><use href="#icon-minus"/></svg></span>'
+            : '<span class="check"><svg><use href="#icon-check"/></svg></span>';
+          
+          return `<li class="${f.type === 'muted' ? 'muted' : ''}">${checkIcon} ${f.text} ${tipHTML}</li>`;
+        }).join('');
+
+        let priceNote = '';
+        if (tier.priceAnnual > 0 && isAnnual) {
+          const savings = (tier.priceMonthly * 12) - tier.priceAnnual;
+          priceNote = `<div class="price-note">Billed $${tier.priceAnnual}/yr — <span>Save $${savings}</span></div>`;
+        } else if (tier.priceMonthly === 0) {
+          priceNote = `<div class="price-note">Free forever</div>`;
+        }
+
+        const priceBlock = `<div class="price-row">
+               <span class="price-currency">${tier.priceMonthly === 0 ? '' : '$'}</span>
+               <span class="price-amount">${tier.priceMonthly === 0 ? 'Free' : price}</span>
+               <span class="price-period">${tier.priceMonthly === 0 ? '' : '/mo'}</span>
+             </div>
+             ${priceNote}`;
+
+        card.innerHTML = `
+          <div class="tier-header">
+            <div class="tier-icon ${tier.iconClass}">
+              <svg><use href="#icon-${tier.icon}"/></svg>
+            </div>
+            <div class="tier-name">${tier.name}</div>
+            <div class="tier-desc">${tier.desc}</div>
+          </div>
+          <div class="tier-price">
+            ${priceBlock}
+          </div>
+          <ul class="tier-features">${featuresHTML}</ul>
+          <button class="tier-cta ${tier.ctaStyle}">${tier.cta}</button>
+        `;
+
+        pricingGrid.appendChild(card);
+      });
+    }
+
+    // Events
+    itemsSlider.addEventListener('input', updateCalculator);
+    regenSlider.addEventListener('input', updateCalculator);
+
+    btnMonthly.addEventListener('click', () => {
+      isAnnual = false;
+      btnMonthly.classList.add('active');
+      btnAnnual.classList.remove('active');
+      renderPricingCards();
+    });
+
+    btnAnnual.addEventListener('click', () => {
+      isAnnual = true;
+      btnAnnual.classList.add('active');
+      btnMonthly.classList.remove('active');
+      renderPricingCards();
+    });
+
+    // Init
+    updateCalculator();
+  </script>
+</body>
+</html>

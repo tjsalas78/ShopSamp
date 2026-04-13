@@ -1,0 +1,19 @@
+{
+  "name": "poshmark-depop-research",
+  "version": "1.0.0",
+  "description": "Research and reverse engineering for Poshmark and Depop APIs",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "poshmark": "node poshmark-research.js",
+    "depop": "node depop-research.js",
+    "test-poshmark-api": "node test-poshmark-api.js",
+    "test-depop-api": "node test-depop-api.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.6.0",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.2",
+    "fs-extra": "^11.1.1"
+  }
+}

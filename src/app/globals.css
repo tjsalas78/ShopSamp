@@ -1,0 +1,179 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Theme tokens ─────────────────────────────────────────────────────────── */
+
+:root {
+  /* Light mode — clean complement to the dark teal/neutral palette */
+  --color-primary: 0 176 138;         /* teal, darkened for light-bg contrast */
+  --color-primary-dark: 0 155 120;
+  --color-primary-dim: 0 136 106;
+  --color-on-primary: 255 255 255;
+  --color-on-surface: 15 15 20;       /* near black */
+  --color-secondary: 140 60 220;      /* purple, adjusted for light */
+  --color-surface: 255 255 255;
+  --color-surface-low: 246 247 249;   /* very subtle warm gray */
+  --color-surface-variant: 224 226 232; /* clean border gray */
+  --color-container-low: 237 239 244;
+  --color-container-highest: 228 231 238;
+
+  --scrollbar-track: #f6f7f9;
+  --scrollbar-thumb: #d0d3dc;
+  --scrollbar-thumb-hover: #00b08a;
+
+  --shadow-card: 0 20px 40px 0 rgba(15, 15, 20, 0.06);
+  --shadow-card-md: 0 20px 60px 0 rgba(15, 15, 20, 0.08), 0 4px 12px 0 rgba(15, 15, 20, 0.04);
+  --shadow-float: 0 40px 80px 0 rgba(15, 15, 20, 0.10), 0 8px 24px 0 rgba(15, 15, 20, 0.06);
+}
+
+.dark {
+  /* Dark mode — SpareDollar pricing page palette */
+  --color-primary: 0 212 170;         /* #00d4aa teal accent */
+  --color-primary-dark: 0 184 148;    /* #00b894 teal hover */
+  --color-primary-dim: 0 160 128;     /* deeper teal */
+  --color-on-primary: 10 10 15;       /* near-black on teal buttons */
+  --color-on-surface: 244 244 246;    /* #f4f4f6 near-white */
+  --color-secondary: 168 85 247;      /* #a855f7 purple */
+  --color-surface: 26 26 36;          /* #1a1a24 card bg */
+  --color-surface-low: 10 10 15;      /* #0a0a0f page bg */
+  --color-surface-variant: 42 42 58;  /* #2a2a3a input/border bg */
+  --color-container-low: 37 37 50;    /* #252532 tooltip bg */
+  --color-container-highest: 34 34 46; /* #22222e card hover */
+
+  --scrollbar-track: #0a0a0f;
+  --scrollbar-thumb: #2a2a3a;
+  --scrollbar-thumb-hover: #00d4aa;
+
+  --shadow-card: 0 20px 40px 0 rgba(0, 212, 170, 0.04);
+  --shadow-card-md: 0 20px 60px 0 rgba(0, 212, 170, 0.06), 0 4px 12px 0 rgba(0, 212, 170, 0.03);
+  --shadow-float: 0 40px 80px 0 rgba(0, 212, 170, 0.08), 0 8px 24px 0 rgba(0, 212, 170, 0.04);
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-surface-low text-on-surface font-sans text-sm;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+  }
+
+  /* Typography scale */
+  .type-display {
+    @apply text-5xl font-bold tracking-tight text-on-surface font-display;
+  }
+  .type-headline {
+    @apply text-2xl font-bold text-on-surface font-display;
+  }
+  .type-title {
+    @apply text-base font-semibold text-on-surface font-display;
+  }
+  .type-body {
+    @apply text-sm font-normal text-on-surface/60 leading-relaxed;
+  }
+  .type-label {
+    @apply text-2xs font-medium uppercase tracking-widest text-on-surface/40;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Glassmorphism — for floating nav / top-level cards */
+  .glass {
+    @apply backdrop-blur-xl bg-surface/60 border border-white/5;
+  }
+
+  /* Ghost border — felt, not seen */
+  .ghost-border {
+    @apply border border-surface-variant/15;
+  }
+}
+
+/* ── Ambient page background (grid + blurred glow orbs) ───────────────────── */
+/* Lives in <body> via layout.tsx. Fixed, behind content, never intercepts events. */
+
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ambient-bg .bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+.dark .ambient-bg .bg-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+}
+
+.ambient-bg .bg-glow {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  filter: blur(100px);
+}
+.ambient-bg .bg-glow.teal {
+  background: rgb(var(--color-primary));
+  top: -150px;
+  left: -100px;
+  opacity: 0.10;
+}
+.ambient-bg .bg-glow.purple {
+  background: rgb(var(--color-secondary));
+  bottom: -200px;
+  right: -150px;
+  opacity: 0.07;
+}
+.dark .ambient-bg .bg-glow.teal { opacity: 0.20; }
+.dark .ambient-bg .bg-glow.purple { opacity: 0.12; }
+
+/* Brand blur — activated via ?blurbrand=true */
+body.blur-brand [data-brand] {
+  filter: blur(6px);
+  user-select: none;
+  pointer-events: none;
+}
