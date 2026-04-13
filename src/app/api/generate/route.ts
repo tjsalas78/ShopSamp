@@ -1,22 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { shopify, sessionStorage } from "@/lib/shopify/shopify";
 import { PSX_generateProducts, PSX_generateFromImage, PSX_GenerateInput } from "@/lib/claude";
+import { fetchProductImages } from "@/lib/images/unsplash";
 
 /**
  * POST /api/generate
- * Generate synthetic product samples using Claude AI.
- * Auth: Shopify offline session keyed by shop domain.
+ * Generates product samples via Claude + attaches relevant images per product.
  *
  * Body: {
- *   shop: string              — merchant's myshopify.com domain
- *   category: string          — product category
- *   keywords?: string         — style/theme keywords
- *   quantity?: number         — how many products (1-50, default 5)
- *   variantPreset?: string    — "none" | "color" | "size" | "color-size" | ...
+ *   shop: string
+ *   category: string          — Google taxonomy full path
+ *   keywords?: string
+ *   quantity?: number         — 1-50
+ *   variantPreset?: string
  *   priceMin?: number
  *   priceMax?: number
  *   brand?: string
- *   imageUrl?: string         — vision-based generation (optional)
+ *   imagesPerProduct?: number — 0-5 (default 2)
+ *   imageUrl?: string         — vision-based generation
  * }
  */
 export async function POST(req: NextRequest) {
@@ -31,29 +31,19 @@ export async function POST(req: NextRequest) {
       priceMin = 9.99,
       priceMax = 99.99,
       brand,
+      imagesPerProduct = 2,
       imageUrl,
     } = body;
 
-    if (!shop) {
-      return NextResponse.json({ error: "Missing shop" }, { status: 400 });
-    }
+    if (!shop) return NextResponse.json({ error: "Missing shop" }, { status: 400 });
 
-    // Verify offline session exists
-    const sessionId = shopify.session.getOfflineId(shop);
-    const session = await sessionStorage.loadSession(sessionId);
-    if (!session) {
-      return NextResponse.json({ error: "Shop not authenticated — reinstall the app" }, { status: 401 });
-    }
-
-    // Image-based generation
+    // Vision-based generation
     if (imageUrl) {
       const products = await PSX_generateFromImage(imageUrl as string, { category, style: keywords });
       return NextResponse.json({ products });
     }
 
-    if (!category) {
-      return NextResponse.json({ error: "Missing category" }, { status: 400 });
-    }
+    if (!category) return NextResponse.json({ error: "Missing category" }, { status: 400 });
 
     const clampedQty = Math.min(Math.max(quantity, 1), 50);
 
@@ -68,9 +58,25 @@ export async function POST(req: NextRequest) {
     };
 
     const products = await PSX_generateProducts(input);
+
+    // Fetch relevant images for each product in parallel
+    const imagesCount = Math.min(Math.max(imagesPerProduct ?? 0, 0), 5);
+    if (imagesCount > 0) {
+      await Promise.all(
+        products.map(async (product) => {
+          const query = `${product.title} ${product.product_type}`.slice(0, 80);
+          const imgs = await fetchProductImages(query, imagesCount);
+          (product as Record<string, unknown>).images = imgs.map((img) => ({
+            src: img.url,
+            alt: img.alt,
+          }));
+        })
+      );
+    }
+
     return NextResponse.json({ products });
   } catch (err) {
-    console.error("[SampShop Generate] Error:", err);
+    console.error("[ShopSamp Generate] Error:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Generation failed" },
       { status: 500 }

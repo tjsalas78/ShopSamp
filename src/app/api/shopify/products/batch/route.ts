@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       errors: result.errors,
     });
   } catch (err) {
-    console.error("[SampShop Batch] Error:", err);
+    console.error("[ShopSamp Batch] Error:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Batch creation failed" },
       { status: 500 }

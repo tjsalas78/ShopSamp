@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (!valid) {
-    console.warn(`[SampShop Webhooks] Invalid HMAC for topic: ${topic} from ${shop}`);
+    console.warn(`[ShopSamp Webhooks] Invalid HMAC for topic: ${topic} from ${shop}`);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -32,12 +32,12 @@ export async function POST(req: NextRequest) {
 
     case "customers/data_request":
       // GDPR: We don't store personal customer data — acknowledge and no-op
-      console.info(`[SampShop Webhooks] customers/data_request for ${shop} — no customer data stored`);
+      console.info(`[ShopSamp Webhooks] customers/data_request for ${shop} — no customer data stored`);
       break;
 
     case "customers/redact":
       // GDPR: We don't store personal customer data — acknowledge and no-op
-      console.info(`[SampShop Webhooks] customers/redact for ${shop} — no customer data stored`);
+      console.info(`[ShopSamp Webhooks] customers/redact for ${shop} — no customer data stored`);
       break;
 
     case "shop/redact":
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       break;
 
     default:
-      console.warn(`[SampShop Webhooks] Unhandled topic: ${topic}`);
+      console.warn(`[ShopSamp Webhooks] Unhandled topic: ${topic}`);
   }
 
   return NextResponse.json({ ok: true });
@@ -64,9 +64,9 @@ async function handleUninstall(shop: string) {
     const sessionId = shopify.session.getOfflineId(shop);
     await sessionStorage.deleteSession(sessionId);
 
-    console.info(`[SampShop Webhooks] App uninstalled from ${shop}`);
+    console.info(`[ShopSamp Webhooks] App uninstalled from ${shop}`);
   } catch (err) {
-    console.error("[SampShop Webhooks] handleUninstall error:", err);
+    console.error("[ShopSamp Webhooks] handleUninstall error:", err);
   }
 }
 
@@ -74,8 +74,8 @@ async function handleShopRedact(shop: string) {
   // GDPR shop/redact: delete all store data 48h after uninstall
   try {
     await prisma.shopifyStore.deleteMany({ where: { shopDomain: shop } });
-    console.info(`[SampShop Webhooks] Shop data redacted for ${shop}`);
+    console.info(`[ShopSamp Webhooks] Shop data redacted for ${shop}`);
   } catch (err) {
-    console.error("[SampShop Webhooks] handleShopRedact error:", err);
+    console.error("[ShopSamp Webhooks] handleShopRedact error:", err);
   }
 }

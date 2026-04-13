@@ -13,7 +13,7 @@ export const shopify = shopifyApi({
   scopes: (process.env.SHOPIFY_SCOPES ?? "write_products,read_products,write_inventory,read_inventory").split(","),
   hostName: (process.env.SHOPIFY_APP_URL ?? "").replace(/^https?:\/\//, ""),
   hostScheme: "https",
-  apiVersion: ApiVersion.January25,
+  apiVersion: ApiVersion.July25,
   isEmbeddedApp: true,
   sessionStorage,
   logger: {

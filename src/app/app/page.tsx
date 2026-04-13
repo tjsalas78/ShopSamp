@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { Page, Layout, Banner } from "@shopify/polaris";
 import { Suspense } from "react";
-import { ProductGenerator } from "@/components/shopify/ProductGenerator";
+import { Wizard } from "@/components/shopsamp/Wizard";
 
 function AppContent() {
   const params = useSearchParams();
@@ -11,10 +11,10 @@ function AppContent() {
 
   return (
     <Page
-      title="SampShop"
+      title="ShopSamp"
       subtitle="Generate realistic product samples for your Shopify store"
     >
-      {!shop && (
+      {!shop ? (
         <Layout>
           <Layout.Section>
             <Banner tone="warning" title="Shop not detected">
@@ -22,8 +22,9 @@ function AppContent() {
             </Banner>
           </Layout.Section>
         </Layout>
+      ) : (
+        <Wizard shop={shop} />
       )}
-      {shop && <ProductGenerator shop={shop} />}
     </Page>
   );
 }

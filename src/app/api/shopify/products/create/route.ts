@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error("[SampShop Create] Error:", err);
+    console.error("[ShopSamp Create] Error:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to create product" },
       { status: 500 }

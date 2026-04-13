@@ -1,5 +1,5 @@
 /**
- * PSX_ShopifyClient — Shopify Admin API client for SampShop.
+ * PSX_ShopifyClient — Shopify Admin API client for ShopSamp.
  * Uses @shopify/shopify-api session storage for access tokens.
  */
 

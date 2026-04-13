@@ -14,10 +14,14 @@ function getClient(): Anthropic {
       try {
         const fs = require('fs');
         const path = require('path');
-        const envPath = path.resolve(process.cwd(), '.env');
-        const envContent = fs.readFileSync(envPath, 'utf-8');
-        const match = envContent.match(/^ANTHROPIC_API_KEY="?([^"\n]+)"?/m);
-        if (match) key = match[1];
+        for (const file of ['.env.local', '.env']) {
+          const envPath = path.resolve(process.cwd(), file);
+          try {
+            const envContent = fs.readFileSync(envPath, 'utf-8');
+            const match = envContent.match(/^ANTHROPIC_API_KEY="?([^"\n]+)"?/m);
+            if (match) { key = match[1]; break; }
+          } catch { /* ignore */ }
+        }
       } catch {
         /* ignore */
       }
@@ -191,7 +195,7 @@ export async function PSX_generateProducts(
   const response = await withRetry(() =>
     client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: PSX_GENERATE_PROMPT,
       messages: [{ role: 'user', content: userPrompt }],
     })
@@ -223,7 +227,7 @@ export async function PSX_generateFromImage(
   const response = await withRetry(() =>
     client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: PSX_GENERATE_PROMPT,
       messages: [
         {
