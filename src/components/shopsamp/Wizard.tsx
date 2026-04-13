@@ -17,13 +17,7 @@ import {
   ProgressBar,
 } from "@shopify/polaris";
 import { useState } from "react";
-import { CategoryPicker } from "./CategoryPicker";
-
-interface TaxonomyNode {
-  id: string;
-  label: string;
-  fullPath: string;
-}
+import { CategoryPicker, type TaxonomyNode } from "./CategoryPicker";
 
 interface WizardConfig {
   categories: TaxonomyNode[];
@@ -189,20 +183,9 @@ export function Wizard({ shop }: Props) {
             <CategoryPicker
               selected={config.categories}
               onChange={(cats) => setConfig((c) => ({ ...c, categories: cats }))}
+              onContinue={() => setStep(2)}
               max={10}
             />
-
-            <Divider />
-
-            <InlineStack align="end">
-              <Button
-                variant="primary"
-                disabled={config.categories.length === 0}
-                onClick={() => setStep(2)}
-              >
-                Next: Configure →
-              </Button>
-            </InlineStack>
           </BlockStack>
         </Card>
       )}

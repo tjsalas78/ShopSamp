@@ -1,12 +1,12 @@
-# SampShop Project Notes
+# ShopSamp Project Notes
 
 ## Local Mac Environment
-- **Mac project path:** `~/Documents/ProdSamp` (folder kept as-is, app renamed SampShop)
-- **GitHub repo:** `tjsalas78/SampShop`
+- **Mac project path:** `~/Documents/ProdSamp` (folder kept as-is, app renamed ShopSamp)
+- **GitHub repo:** `tjsalas78/ShopSamp`
 - **Active branch:** `main`
 - **Mac username:** `tsalas`
 
-## What is SampShop?
+## What is ShopSamp?
 A **Shopify embedded app** for developers and designers to generate AI-powered, realistic product samples and push them directly into their Shopify stores — for testing, seeding, and prototyping.
 
 - Target audience: Devs/designers who need realistic test data without doing it manually
@@ -51,7 +51,7 @@ See `.env.example` for required variables.
 - `SHOPIFY_API_KEY` — from Shopify Partner Dashboard
 - `SHOPIFY_API_SECRET` — from Shopify Partner Dashboard
 - `SHOPIFY_SCOPES` — write_products,read_products,write_inventory,read_inventory
-- `SHOPIFY_APP_URL` — e.g. https://sampshop.vercel.app
+- `SHOPIFY_APP_URL` — e.g. https://shopsamp.vercel.app
 - `DATABASE_URL` — Neon PostgreSQL connection string
 - `DIRECT_URL` — Neon direct connection (for Prisma migrations)
 - `ANTHROPIC_API_KEY` — Claude API key

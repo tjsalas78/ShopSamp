@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" width="1200" height="1200">
+  <!-- Rounded square background -->
+  <rect width="1200" height="1200" rx="200" fill="#0f2d52"/>
+
+  <!-- Folder tab -->
+  <path d="M160 430 L160 350 Q160 310 200 310 L470 310 Q500 310 520 340 L560 430 Z" fill="#1e5799"/>
+
+  <!-- Folder body -->
+  <rect x="160" y="425" width="880" height="580" rx="55" fill="#1e5799"/>
+
+  <!-- Subtle inner shadow on folder top -->
+  <rect x="160" y="425" width="880" height="30" rx="0" fill="#2a6ab5" opacity="0.4"/>
+
+  <!-- Question mark dot -->
+  <circle cx="600" cy="870" r="42" fill="white" opacity="0.95"/>
+
+  <!-- Question mark curve -->
+  <path
+    d="M510 560 Q510 470 600 460 Q700 450 720 530 Q740 610 660 660 Q630 680 622 720 L622 790"
+    fill="none"
+    stroke="white"
+    stroke-width="78"
+    stroke-linecap="round"
+    opacity="0.95"
+  />
+</svg>
